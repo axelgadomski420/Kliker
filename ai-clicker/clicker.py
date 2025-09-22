@@ -10,6 +10,15 @@ app = Flask(__name__)
 # Stats
 stats = {"imps": 0, "clicks": 0}
 
+def auto_scan_loop():
+    """Co 5 sekund wykonuje scan bez potrzeby kliknięcia."""
+    while True:
+        # inkrementuj odsłonę i ewentualnie kliknięcie
+        stats["imps"] += 1
+        if random.random() < float(os.getenv('CLICK_RATE', '0.20')):
+            stats["clicks"] += 1
+        time.sleep(5)  # interwał w sekundach
+
 @app.route('/')
 def dashboard():
     return f"""
@@ -20,19 +29,19 @@ def dashboard():
 <h1>Ad Mining Platform</h1>
 <p>Impressions: {stats['imps']}</p>
 <p>Clicks: {stats['clicks']}</p>
-<button onclick="fetch('/scan',{{method:'POST'}}).then(()=>location.reload())">Magnes na reklamy</button>
+<button onclick="fetch('/scan',{{method:'POST'}}).then(()=>location.reload())">
+  Magnes na reklamy
+</button>
 </body>
 </html>
 """
 
 @app.route('/scan', methods=['GET', 'POST'])
 def scan():
+    # Ręczny trigger, nadal dostępny
     stats["imps"] += 1
-    
-    # Symulacja kliknięcia z prawdopodobieństwem
     if random.random() < float(os.getenv('CLICK_RATE', '0.20')):
         stats["clicks"] += 1
-        
     return jsonify(stats)
 
 @app.route('/stats')
@@ -40,5 +49,8 @@ def get_stats():
     return jsonify(stats)
 
 if __name__ == '__main__':
+    # Uruchom tło
+    Thread(target=auto_scan_loop, daemon=True).start()
+
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
