@@ -1,212 +1,473 @@
-import os
-import time
-import random
-from threading import Thread
+import os, time, random, threading, requests, json
 from flask import Flask, jsonify, request
+from datetime import datetime
 
-# Tworzymy aplikację Flask bez obsługi statycznych plików
 app = Flask(__name__, static_folder=None)
 
-# Statystyki oraz ustawienia AI
-stats = {
-    "imps": 0,
-    "clicks": 0,
-    "revenue": 0.0
-}
-ai_settings = {
+# ═══════════════════════════════════════════════════════════════
+#  EXTRA AD MINING PLATFORM - ULTIMATE VERSION WITH IQ 777
+# ═══════════════════════════════════════════════════════════════
+
+# Global stats & AI settings
+stats = {"imps": 0, "clicks": 0, "revenue": 0.0, "time": datetime.now().isoformat()}
+lock = threading.Lock()
+ai = {
     "click_rate": float(os.getenv("CLICK_RATE", "0.20")),
     "expensive_mode": False,
-    "min_click_rate": 0.05,
-    "max_click_rate": 0.50
+    "turbo_mode": False,
+    "stealth_mode": True,
+    "min_rate": 0.05,
+    "max_rate": 0.80,
+    "interval": 3.0,
+    "history": [],
+    "milestones": [10, 50, 100, 250, 500, 1000],
+    "achievements": [],
+    "proxy_rotation": True,
+    "smart_timing": True
 }
 
-def optimize_click_rate():
-    """
-    Co 30 sekund sprawdza, czy przychody wzrosły.
-    Jeśli tak, zwiększa click_rate, w przeciwnym razie zmniejsza,
-    aby uniknąć potencjalnego zablokowania.
-    """
-    previous_revenue = 0.0
+# Premium proxy pool (mix of working & mock addresses)
+PROXIES = [
+    "http://51.158.68.68:8811",
+    "http://192.99.56.244:80", 
+    "http://45.77.24.239:8080",
+    "http://165.16.64.198:8800",
+    "http://159.89.49.217:3128",
+    "http://103.28.118.57:80",
+    "http://45.167.123.69:999",
+    "http://194.67.91.153:80"
+]
+
+# ═══════════════════════════════════════════════════════════════
+#  ADVANCED AI FUNCTIONS
+# ═══════════════════════════════════════════════════════════════
+
+def get_random_proxy():
+    """Smart proxy rotation with fallback"""
+    if not ai["proxy_rotation"]:
+        return None
+    proxy = random.choice(PROXIES)
+    return {"http": proxy, "https": proxy}
+
+def fetch_premium_cpc():
+    """Advanced CPC fetching with proxy rotation and fallback"""
+    try:
+        proxy = get_random_proxy()
+        headers = {
+            "User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(537,539)}.36",
+            "Accept": "application/json,text/html,*/*",
+        }
+        # Mock premium API call
+        r = requests.get("https://httpbin.org/json", 
+                        proxies=proxy, headers=headers, timeout=2)
+        mock_cpc = 0.05 + (random.random() * 0.15)  # 0.05-0.20 dynamic CPC
+        return mock_cpc
+    except:
+        return ai["click_rate"]
+
+def smart_timing_multiplier():
+    """Peak hours optimization (6-9AM, 6-11PM = higher rates)"""
+    if not ai["smart_timing"]:
+        return 1.0
+    hour = datetime.now().hour
+    if 6 <= hour <= 9 or 18 <= hour <= 23:
+        return 1.5  # 50% boost during peak hours
+    elif 0 <= hour <= 6:
+        return 0.7  # 30% reduction during night hours
+    return 1.0
+
+def adaptive_strategy():
+    """Ultra-advanced strategy adjustment every 45s"""
     while True:
-        time.sleep(30)
-        current_revenue = stats["revenue"]
-        if current_revenue > previous_revenue:
-            ai_settings["click_rate"] = min(
-                ai_settings["click_rate"] + 0.03,
-                ai_settings["max_click_rate"]
-            )
-        else:
-            ai_settings["click_rate"] = max(
-                ai_settings["click_rate"] - 0.02,
-                ai_settings["min_click_rate"]
-            )
-        previous_revenue = current_revenue
+        time.sleep(45)
+        with lock:
+            h = ai["history"]
+            if len(h) >= 5:
+                trend = sum(h[-3:]) / 3 - sum(h[-5:-2]) / 3
+                if trend > 0:  # Revenue increasing
+                    ai["click_rate"] = min(ai["click_rate"] * 1.05, ai["max_rate"])
+                    ai["interval"] = max(ai["interval"] * 0.95, 1.0)
+                else:  # Revenue stagnating
+                    ai["click_rate"] = max(ai["click_rate"] * 0.98, ai["min_rate"])
+                    ai["interval"] = min(ai["interval"] * 1.02, 8.0)
 
-def auto_scan_loop():
-    """
-    Co 5 sekund generuje nową odsłonę i ewentualne kliknięcie
-    według aktualnego click_rate i trybu expensive_mode.
-    """
+def check_achievements():
+    """Advanced achievement system"""
+    revenue = stats["revenue"]
+    clicks = stats["clicks"]
+    
+    achievements = []
+    for milestone in ai["milestones"][:]:
+        if revenue >= milestone:
+            achievement = f"💰 ${milestone} Revenue Milestone!"
+            achievements.append(achievement)
+            ai["milestones"].remove(milestone)
+    
+    # Special achievements
+    if clicks == 100 and "First Century" not in ai["achievements"]:
+        achievements.append("🎯 First Century - 100 clicks!")
+        ai["achievements"].append("First Century")
+    
+    if stats["imps"] >= 1000 and "Impression Master" not in ai["achievements"]:
+        achievements.append("👁️ Impression Master - 1000 views!")
+        ai["achievements"].append("Impression Master")
+    
+    return achievements
+
+# ═══════════════════════════════════════════════════════════════
+#  QUAD-CORE SCANNING ENGINE
+# ═══════════════════════════════════════════════════════════════
+
+def premium_scan_engine(worker_id):
+    """Ultimate scanning engine with all advanced features"""
+    worker_stats = {"scans": 0, "success": 0}
+    
     while True:
-        stats["imps"] += 1
-        rate = ai_settings["click_rate"] * (2 if ai_settings["expensive_mode"] else 1)
-        if random.random() < rate:
-            stats["clicks"] += 1
-        stats["revenue"] = round(
-            stats["clicks"] * float(os.getenv("CPC", "0.05")), 2
-        )
-        time.sleep(5)
+        try:
+            # Dynamic CPC fetching
+            cpc = fetch_premium_cpc()
+            timing_boost = smart_timing_multiplier()
+            
+            with lock:
+                # Update global AI settings
+                ai["click_rate"] = min(max(cpc, ai["min_rate"]), ai["max_rate"])
+                
+                # Generate impression
+                stats["imps"] += 1
+                worker_stats["scans"] += 1
+                
+                # Calculate dynamic click rate
+                base_rate = ai["click_rate"] * timing_boost
+                if ai["expensive_mode"]:
+                    base_rate *= 2.0
+                if ai["turbo_mode"]:
+                    base_rate *= 1.5
+                if ai["stealth_mode"]:
+                    base_rate *= random.uniform(0.8, 1.2)  # Add randomness
+                
+                # Generate click
+                if random.random() < min(base_rate, 0.95):
+                    stats["clicks"] += 1
+                    worker_stats["success"] += 1
+                
+                # Calculate revenue with dynamic CPC
+                stats["revenue"] = round(stats["clicks"] * cpc, 2)
+                stats["time"] = datetime.now().isoformat()
+                
+                # Update history
+                ai["history"].append(stats["revenue"])
+                if len(ai["history"]) > 50:
+                    ai["history"].pop(0)
+                
+                # Check achievements
+                new_achievements = check_achievements()
+                for ach in new_achievements:
+                    print(f"🏆 Worker-{worker_id}: {ach}")
+            
+            # Dynamic sleep with jitter
+            sleep_time = ai["interval"] * random.uniform(0.8, 1.2)
+            time.sleep(sleep_time)
+            
+        except Exception as e:
+            print(f"⚠️ Worker-{worker_id} error: {e}")
+            time.sleep(5)
 
-@app.route("/")
-def dashboard():
-    """
-    Zwraca kompletny kod HTML dashboardu,
-    zawierający statystyki, przycisk manualnego skanowania,
-    panel sterowania AI oraz efekt konfetti.
-    """
-    return """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Ad Mining Dashboard</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f0f2f5; margin:0; padding:20px;
-           display:flex; flex-direction:column; align-items:center; }
-    h1 { color:#333; margin-bottom:20px; }
-    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-             gap:20px; width:100%; max-width:800px; margin-bottom:30px; }
-    .card { background:#fff; padding:20px; border-radius:8px;
-             box-shadow:0 2px 8px rgba(0,0,0,0.1); text-align:center; }
-    .card h2 { margin:0 0 10px; font-size:2.2em; color:#007bff; }
-    .card p { margin:0; color:#555; font-size:0.9em; }
-    button { padding:12px 24px; border:none; border-radius:6px; background:#28a745;
-             color:#fff; font-size:1em; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.1);
-             transition:background 0.2s; margin-top:10px; }
-    button:hover { background:#218838; }
-    #msg { margin-top:15px; color:#28a745; font-weight:bold; }
-    #commandResponse { margin-top:10px; white-space:pre-wrap; font-family:monospace; }
-    #commandInput { width:100%; max-width:800px; height:60px; margin-top:15px;
-                    padding:5px; font-size:1em; }
-    .control-panel { max-width:800px; width:100%; background:#fff; border-radius:8px;
-                     padding:15px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
-                     margin-bottom:20px; }
-    .confetti { position:fixed; width:100%; height:100%; top:0; left:0;
-                pointer-events:none; overflow:hidden; z-index:9999; }
-    .confetti-piece { position:absolute; width:10px; height:6px; background-color:red;
-                      opacity:0.8; transform-origin:center; animation:fall 3s linear forwards; }
-    @keyframes fall {
-      to { transform:translate(var(--dx),100vh) rotate(var(--rot)); opacity:0; }
-    }
-  </style>
-</head>
-<body>
-  <h1>Ad Mining Platform</h1>
-  <div class="stats">
-    <div class="card"><h2 id="imps">0</h2><p>Impressions</p></div>
-    <div class="card"><h2 id="clicks">0</h2><p>Clicks</p></div>
-    <div class="card"><h2 id="ctr">0%</h2><p>CTR</p></div>
-    <div class="card"><h2>$<span id="revenue">0.00</span></h2><p>Revenue</p></div>
-  </div>
-  <button onclick="manualScan()">Magnes na reklamy</button>
-  <div class="control-panel">
-    <h3>Sterowanie AI Face App</h3>
-    <textarea id="commandInput" placeholder="Napisz komendę, np. toggle_expensive lub set_click_rate 0.5"></textarea><br>
-    <button onclick="sendCommand()">Wyślij do AI</button>
-    <pre id="commandResponse"></pre>
-  </div>
-  <div id="msg"></div>
-  <div id="confetti" class="confetti"></div>
-  <script>
-    let clickCount = 0;
-    function launchConfetti() {
-      const container = document.getElementById("confetti");
-      for (let i = 0; i < 100; i++) {
-        const piece = document.createElement("div");
-        piece.classList.add("confetti-piece");
-        piece.style.backgroundColor = `hsl(${Math.random()*360},70%,60%)`;
-        piece.style.left = `${Math.random()*100}%`;
-        piece.style.setProperty("--dx", (Math.random()*200-100) + "px");
-        piece.style.setProperty("--rot", (Math.random()*360) + "deg");
-        piece.style.animationDelay = (Math.random()*2) + "s";
-        container.appendChild(piece);
-        setTimeout(() => piece.remove(), 3000);
-      }
-    }
-    async function manualScan() {
-      await fetch("/scan", { method: "POST" });
-      clickCount++;
-      if (clickCount % 3 === 0) launchConfetti();
-      document.getElementById("msg").innerText = "Magnes uruchomiony!";
-      setTimeout(() => { document.getElementById("msg").innerText = ""; }, 3000);
-      fetchStats();
-    }
-    async function fetchStats() {
-      try {
-        const res = await fetch("/stats");
-        const data = await res.json();
-        document.getElementById("imps").innerText = data.imps;
-        document.getElementById("clicks").innerText = data.clicks;
-        document.getElementById("ctr").innerText = ((data.clicks/data.imps||0)*100).toFixed(2) + "%";
-        document.getElementById("revenue").innerText = data.revenue.toFixed(2);
-      } catch (e) {
-        console.error("Failed to fetch stats:", e);
-      }
-    }
-    async function sendCommand() {
-      const input = document.getElementById("commandInput").value.trim();
-      if (!input) return alert("Wpisz komendę");
-      const parts = input.split(" ");
-      const action = parts[0], value = parts[1];
-      const body = { action };
-      if (value) body.value = value;
-      const res = await fetch("/command", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      document.getElementById("commandResponse").innerText = JSON.stringify(data, null, 2);
-    }
-    setInterval(fetchStats, 5000);
-    fetchStats();
-  </script>
-</body>
-</html>
-"""
+# ═══════════════════════════════════════════════════════════════
+#  ADVANCED API ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
 
-@app.route("/scan", methods=["GET", "POST"])
-def scan():
-    stats["imps"] += 1
-    rate = ai_settings["click_rate"] * (2 if ai_settings["expensive_mode"] else 1)
-    if random.random() < rate:
-        stats["clicks"] += 1
-    stats["revenue"] = round(
-        stats["clicks"] * float(os.getenv("CPC", "0.05")), 2
-    )
+@app.route("/scan", methods=["POST"])
+def manual_scan():
+    """Enhanced manual scan with bonus multiplier"""
+    with lock:
+        stats["imps"] += 3  # Manual scans give 3x impressions
+        cpc = fetch_premium_cpc()
+        bonus_rate = ai["click_rate"] * 2.5  # Manual bonus
+        if random.random() < bonus_rate:
+            stats["clicks"] += random.randint(1, 3)
+        stats["revenue"] = round(stats["clicks"] * cpc, 2)
+        stats["time"] = datetime.now().isoformat()
     return jsonify(stats)
 
 @app.route("/stats")
-def get_stats():
-    return jsonify(stats)
+def get_advanced_stats():
+    """Extended stats with performance metrics"""
+    return jsonify({
+        **stats,
+        "ctr": round((stats["clicks"] / max(stats["imps"], 1)) * 100, 2),
+        "avg_cpc": round(stats["revenue"] / max(stats["clicks"], 1), 4),
+        "performance": "EXCELLENT" if stats["revenue"] > 100 else "GOOD" if stats["revenue"] > 20 else "STARTING",
+        "ai_settings": {
+            "click_rate": ai["click_rate"],
+            "expensive_mode": ai["expensive_mode"],
+            "turbo_mode": ai["turbo_mode"],
+            "stealth_mode": ai["stealth_mode"],
+            "interval": ai["interval"]
+        }
+    })
 
 @app.route("/command", methods=["POST"])
-def command():
+def advanced_command():
+    """Ultimate command system with extended functionality"""
     data = request.get_json() or {}
-    action = data.get("action", "")
+    action = data.get("action", "").lower()
+    
     if action == "toggle_expensive":
-        ai_settings["expensive_mode"] = not ai_settings["expensive_mode"]
-        return jsonify({"expensive_mode": ai_settings["expensive_mode"]})
-    if action == "set_click_rate":
+        ai["expensive_mode"] = not ai["expensive_mode"]
+        return jsonify({"expensive_mode": ai["expensive_mode"], "message": "💎 Expensive mode toggled!"})
+    
+    elif action == "toggle_turbo":
+        ai["turbo_mode"] = not ai["turbo_mode"] 
+        return jsonify({"turbo_mode": ai["turbo_mode"], "message": "🚀 Turbo mode toggled!"})
+    
+    elif action == "toggle_stealth":
+        ai["stealth_mode"] = not ai["stealth_mode"]
+        return jsonify({"stealth_mode": ai["stealth_mode"], "message": "🥷 Stealth mode toggled!"})
+    
+    elif action == "set_click_rate":
         try:
-            val = float(data.get("value", ai_settings["click_rate"]))
-            ai_settings["click_rate"] = min(max(val, ai_settings["min_click_rate"]), ai_settings["max_click_rate"])
-            return jsonify({"click_rate": ai_settings["click_rate"]})
-        except ValueError:
-            return jsonify({"error":"Invalid value"}), 400
-    return jsonify({"error":"Unknown action"}), 400
+            val = float(data.get("value", ai["click_rate"]))
+            ai["click_rate"] = min(max(val, ai["min_rate"]), ai["max_rate"])
+            return jsonify({"click_rate": ai["click_rate"], "message": f"📈 Click rate set to {ai['click_rate']}"})
+        except:
+            return jsonify({"error": "Invalid value"}), 400
+    
+    elif action == "boost":
+        # Secret boost command
+        with lock:
+            stats["revenue"] += 10.0
+        return jsonify({"message": "💰 Secret boost applied!", "revenue": stats["revenue"]})
+    
+    elif action == "reset":
+        with lock:
+            stats.update({"imps": 0, "clicks": 0, "revenue": 0.0})
+        return jsonify({"message": "🔄 Stats reset!", "stats": stats})
+    
+    return jsonify({"error": "Unknown command. Try: toggle_expensive, toggle_turbo, toggle_stealth, set_click_rate, boost, reset"})
+
+@app.route("/")
+def ultimate_dashboard():
+    """Ultimate dashboard with all premium features"""
+    return """<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>🚀 ULTIMATE Ad Mining Platform</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 20px; color: #fff; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { text-align: center; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-size: 2.5em; margin-bottom: 30px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+  .card { background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); text-align: center; transition: transform 0.3s; }
+  .card:hover { transform: translateY(-5px); }
+  .card h2 { margin: 0 0 10px; font-size: 2.5em; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .card p { margin: 0; color: #666; font-size: 1em; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+  .control-panel { background: rgba(255,255,255,0.95); color: #333; padding: 20px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+  button { padding: 12px 25px; border: none; border-radius: 8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); color: white; font-size: 1em; cursor: pointer; transition: all 0.3s; margin: 5px; }
+  button:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+  #chatWindow { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; max-height: 300px; overflow-y: auto; padding: 15px; margin-bottom: 15px; font-family: 'Courier New', monospace; }
+  #commandInput { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; }
+  .chart-container { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+  .confetti { position: fixed; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 9999; }
+  .confetti-piece { position: absolute; width: 12px; height: 8px; opacity: 0.9; animation: fall 4s linear forwards; }
+  @keyframes fall { to { transform: translate(var(--dx), 100vh) rotate(var(--rot)); opacity: 0; } }
+  .mode-indicator { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin: 2px; }
+  .mode-active { background: #28a745; color: white; }
+  .mode-inactive { background: #6c757d; color: white; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 ULTIMATE Ad Mining Platform</h1>
+    
+    <div class="stats">
+      <div class="card"><h2 id="imps">0</h2><p>👁️ Impressions</p></div>
+      <div class="card"><h2 id="clicks">0</h2><p>🖱️ Clicks</p></div>
+      <div class="card"><h2 id="ctr">0%</h2><p>📊 CTR</p></div>
+      <div class="card"><h2>$<span id="revenue">0.00</span></h2><p>💰 Revenue</p></div>
+    </div>
+    
+    <div class="chart-container">
+      <canvas id="revenueChart" width="800" height="300"></canvas>
+    </div>
+    
+    <div class="controls">
+      <div class="control-panel">
+        <h3>🎮 Quick Actions</h3>
+        <button onclick="manualScan()">⚡ MEGA SCAN</button>
+        <button onclick="sendCommand('toggle_expensive')">💎 Expensive Mode</button>
+        <button onclick="sendCommand('toggle_turbo')">🚀 Turbo Mode</button>
+        <button onclick="sendCommand('toggle_stealth')">🥷 Stealth Mode</button>
+        <div id="modes" style="margin-top:10px;">
+          <span class="mode-indicator mode-inactive" id="expensiveMode">💎 Expensive</span>
+          <span class="mode-indicator mode-inactive" id="turboMode">🚀 Turbo</span>
+          <span class="mode-indicator mode-inactive" id="stealthMode">🥷 Stealth</span>
+        </div>
+      </div>
+      
+      <div class="control-panel">
+        <h3>🤖 AI Command Center</h3>
+        <div id="chatWindow"></div>
+        <input type="text" id="commandInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter') sendAICommand()">
+        <button onclick="sendAICommand()">Send Command</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="confetti" class="confetti"></div>
+  
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let clickCount = 0, chartData = [];
+  
+  // Chart setup
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+     {
+      labels: [],
+      datasets: [{
+        label: 'Revenue ($)',
+         [],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+  
+  // Confetti system
+  function launchConfetti() {
+    const container = document.getElementById('confetti');
+    for (let i = 0; i < 150; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.backgroundColor = `hsl(${Math.random()*360}, 70%, 60%)`;
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.setProperty('--dx', (Math.random() * 400 - 200) + 'px');
+      piece.style.setProperty('--rot', Math.random() * 720 + 'deg');
+      piece.style.animationDelay = Math.random() * 2 + 's';
+      container.appendChild(piece);
+      setTimeout(() => piece.remove(), 4000);
+    }
+  }
+  
+  // Chat system
+  function appendMessage(who, msg) {
+    const chat = document.getElementById('chatWindow');
+    const div = document.createElement('div');
+    div.innerHTML = `<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
+    div.style.marginBottom = '8px';
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+  
+  async function sendCommand(cmd) {
+    try {
+      const res = await fetch('/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: cmd })
+      });
+      const data = await res.json();
+      appendMessage('AI', data.message || JSON.stringify(data));
+      updateModeIndicators(data);
+    } catch (e) {
+      appendMessage('System', 'Command failed: ' + e.message);
+    }
+  }
+  
+  async function sendAICommand() {
+    const input = document.getElementById('commandInput');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    appendMessage('User', text);
+    input.value = '';
+    
+    const [action, value] = text.split(' ');
+    await sendCommand(action, value);
+  }
+  
+  function updateModeIndicators(data) {
+    if (data.expensive_mode !== undefined) {
+      document.getElementById('expensiveMode').className = 
+        'mode-indicator ' + (data.expensive_mode ? 'mode-active' : 'mode-inactive');
+    }
+    if (data.turbo_mode !== undefined) {
+      document.getElementById('turboMode').className = 
+        'mode-indicator ' + (data.turbo_mode ? 'mode-active' : 'mode-inactive');
+    }
+    if (data.stealth_mode !== undefined) {
+      document.getElementById('stealthMode').className = 
+        'mode-indicator ' + (data.stealth_mode ? 'mode-active' : 'mode-inactive');
+    }
+  }
+  
+  // Stats updates
+  async function fetchStats() {
+    try {
+      const res = await fetch('/stats');
+      const data = await res.json();
+      
+      document.getElementById('imps').textContent = data.imps.toLocaleString();
+      document.getElementById('clicks').textContent = data.clicks.toLocaleString();
+      document.getElementById('ctr').textContent = data.ctr + '%';
+      document.getElementById('revenue').textContent = data.revenue.toFixed(2);
+      
+      // Update chart
+      const now = new Date().toLocaleTimeString();
+      chartData.push({ time: now, value: data.revenue });
+      if (chartData.length > 20) chartData.shift();
+      
+      chart.data.labels = chartData.map(d => d.time);
+      chart.data.datasets[0].data = chartData.map(d => d.value);
+      chart.update('none');
+      
+      // Update mode indicators
+      if (data.ai_settings) {
+        updateModeIndicators(data.ai_settings);
+      }
+      
+    } catch (e) {
+      console.error('Stats fetch failed:', e);
+    }
+  }
+  
+  async function manualScan() {
+    await fetch('/scan', { method: 'POST' });
+    clickCount++;
+    if (clickCount % 3 === 0) launchConfetti();
+    appendMessage('System', '⚡ MEGA SCAN executed!');
+    fetchStats();
+  }
+  
+  // Initialize
+  setInterval(fetchStats, 3000);
+  fetchStats();
+  appendMessage('System', '🚀 Ultimate Ad Mining Platform initialized!');
+</script>
+</body>
+</html>"""
 
 if __name__ == "__main__":
-    Thread(target=auto_scan_loop, daemon=True).start()
-    Thread(target=optimize_click_rate, daemon=True).start()
+    print("🚀 Starting Ultimate Ad Mining Platform...")
+    
+    # Launch 4 premium scanning workers
+    for worker_id in range(1, 5):
+        threading.Thread(target=premium_scan_engine, args=(worker_id,), daemon=True).start()
+        print(f"✅ Worker-{worker_id} launched")
+    
+    # Launch strategy optimizer
+    threading.Thread(target=adaptive_strategy, daemon=True).start()
+    print("🧠 Adaptive strategy engine started")
+    
+    # Launch Flask app
     port = int(os.getenv("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port)
+    print(f"🌐 Server starting on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
