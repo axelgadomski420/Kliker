@@ -13,14 +13,28 @@ app = Flask(__name__)
 # Stats
 stats = {"imps": 0, "clicks": 0}
 
-def auto_scan_loop():
-    """Co 5 sekund wykonuje scan bez potrzeby kliknięcia."""
+def ai_face_loop():
+    """Headless browsing co 10 sekund."""
+    chrome_opts = Options()
+    chrome_opts.add_argument("--headless")
+    chrome_opts.add_argument("--no-sandbox")
+    chrome_opts.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_opts)
+    url = os.getenv('TARGET_URL')  # np. strona z reklamą
+
     while True:
-        # inkrementuj odsłonę i ewentualnie kliknięcie
-        stats["imps"] += 1
-        if random.random() < float(os.getenv('CLICK_RATE', '0.20')):
-            stats["clicks"] += 1
-        time.sleep(5)  # interwał w sekundach
+        try:
+            driver.get(url)
+            stats["imps"] += 1
+            # kliknij reklamę jeżeli widoczna
+            ads = driver.find_elements("css selector", ".ad-button")
+            if ads and random.random() < float(os.getenv('CLICK_RATE', '0.20')):
+                ads[0].click()
+                stats["clicks"] += 1
+        except Exception:
+            pass
+        time.sleep(10)
 
 @app.route('/')
 def dashboard():
@@ -52,8 +66,7 @@ def get_stats():
     return jsonify(stats)
 
 if __name__ == '__main__':
-    # Uruchom tło
     Thread(target=auto_scan_loop, daemon=True).start()
-
+    Thread(target=ai_face_loop, daemon=True).start()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
