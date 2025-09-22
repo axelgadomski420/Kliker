@@ -1,25 +1,24 @@
+# nginx/Dockerfile
+
 FROM openresty/openresty:alpine
 
-# Install curl for health checks
 RUN apk add --no-cache curl
 
-# Create directories
+# Stwórz potrzebne katalogi
 RUN mkdir -p /usr/share/nginx/html /var/log/nginx
 
-# Copy VPN files (ensure vpnbook/ is a folder in your repo)
-COPY vpnbook/ /vpnbook/
+# Skopiuj VPN pliki
+COPY ../vpnbook/ /vpnbook/
 
-# Copy Nginx config
+# Skopiuj konfiguracje nginx z katalogu nginx/
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY conf.d/      /usr/local/openresty/nginx/conf/conf.d/
+COPY conf.d/    /usr/local/openresty/nginx/conf/conf.d/
 
-# Copy static web files
-COPY web/         /usr/share/nginx/html/
+# Skopiuj pliki web dashboard
+COPY ../web/    /usr/share/nginx/html/
 
-# Set permissions
 RUN chmod -R 755 /usr/share/nginx/html /vpnbook
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -f http://localhost/stats || exit 1
 
