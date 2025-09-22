@@ -1,21 +1,18 @@
-# nginx/Dockerfile
-
 FROM openresty/openresty:alpine
 
 RUN apk add --no-cache curl
 
-# Stwórz potrzebne katalogi
 RUN mkdir -p /usr/share/nginx/html /var/log/nginx
 
-# Skopiuj VPN pliki
-COPY ../vpnbook/ /vpnbook/
+# Skopiuj wszystkie pliki .ovpn i auth.txt
+COPY vpnbook/ /vpnbook/
 
-# Skopiuj konfiguracje nginx z katalogu nginx/
-COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY conf.d/    /usr/local/openresty/nginx/conf/conf.d/
+# Skopiuj konfigurację nginx z odpowiednich ścieżek w repozytorium
+COPY nginx/nginx.conf                     /usr/local/openresty/nginx/conf/nginx.conf
+COPY nginx/conf.d/                        /usr/local/openresty/nginx/conf/conf.d/
 
-# Skopiuj pliki web dashboard
-COPY ../web/    /usr/share/nginx/html/
+# Skopiuj pliki frontend dashboard
+COPY web/                                 /usr/share/nginx/html/
 
 RUN chmod -R 755 /usr/share/nginx/html /vpnbook
 
