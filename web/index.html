@@ -1,3 +1,6 @@
+<?php
+// index.php
+?>
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -12,10 +15,7 @@
       margin: 0;
       padding: 20px;
     }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1200px; margin: 0 auto; }
     h1 {
       text-align: center;
       font-size: 2.5em;
@@ -37,9 +37,7 @@
       text-align: center;
       transition: transform 0.3s;
     }
-    .card:hover {
-      transform: translateY(-5px);
-    }
+    .card:hover { transform: translateY(-5px); }
     .card h2 {
       margin: 0 0 10px;
       font-size: 2.5em;
@@ -47,11 +45,7 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .card p {
-      margin: 0;
-      color: #666;
-      font-size: 1em;
-    }
+    .card p { margin: 0; color: #666; font-size: 1em; }
     .chart-container {
       background: rgba(255,255,255,0.95);
       border-radius: 15px;
@@ -77,7 +71,7 @@
       border: none;
       border-radius: 8px;
       background: linear-gradient(45deg,#FF6B6B,#4ECDC4);
-      color: white;
+      color: #fff;
       font-size: 1em;
       cursor: pointer;
       transition: all 0.3s;
@@ -113,14 +107,8 @@
       font-size: 0.8em;
       margin: 2px;
     }
-    .mode-active {
-      background: #28a745;
-      color: white;
-    }
-    .mode-inactive {
-      background: #6c757d;
-      color: white;
-    }
+    .mode-active { background: #28a745; color: #fff; }
+    .mode-inactive { background: #6c757d; color: #fff; }
     .confetti {
       position: fixed;
       width: 100%;
@@ -138,7 +126,7 @@
       animation: fall 4s linear forwards;
     }
     @keyframes fall {
-      to { transform: translate(var(--dx), 100vh) rotate(var(--rot)); opacity: 0; }
+      to { transform: translate(var(--dx),100vh) rotate(var(--rot)); opacity: 0; }
     }
     .links {
       margin-top: 20px;
@@ -191,15 +179,15 @@
         <button onclick="sendAICommand('toggle_stealth')">🥷 Stealth Mode</button>
         <div id="modes">
           <span id="expensiveMode" class="mode-indicator mode-inactive">💎 Expensive</span>
-          <span id="turboMode" class="mode-indicator mode-inactive">🚀 Turbo</span>
-          <span id="stealthMode" class="mode-indicator mode-inactive">🥷 Stealth</span>
+          <span id="turboMode"     class="mode-indicator mode-inactive">🚀 Turbo</span>
+          <span id="stealthMode"   class="mode-indicator mode-inactive">🥷 Stealth</span>
         </div>
       </div>
 
       <div class="control-panel links">
         <h3>Manage Affiliate Links</h3>
         <input id="network" placeholder="Network name" />
-        <input id="url" placeholder="Affiliate URL with {SOURCE_ID} or {CLICK_ID}" />
+        <input id="url"     placeholder="Affiliate URL with {SOURCE_ID} or {CLICK_ID}" />
         <button onclick="addLink()">Add Link</button>
         <ul id="linksList"></ul>
       </div>
@@ -220,21 +208,21 @@
     let clickCount = 0, chartData = [];
 
     function launchConfetti(){
-      const container = document.getElementById('confetti');
-      for(let i=0; i<100; i++){
-        const piece = document.createElement('div');
-        piece.className = 'confetti-piece';
-        piece.style.backgroundColor = `hsl(${Math.random()*360},70%,60%)`;
-        piece.style.left = `${Math.random()*100}%`;
-        piece.style.setProperty('--dx', (Math.random()*400-200)+'px');
-        piece.style.setProperty('--rot', (Math.random()*720)+'deg');
-        piece.style.animationDelay = (Math.random()*2) + 's';
-        container.appendChild(piece);
-        setTimeout(() => piece.remove(), 4000);
+      const c = document.getElementById('confetti');
+      for(let i=0;i<100;i++){
+        const p = document.createElement('div');
+        p.className = 'confetti-piece';
+        p.style.backgroundColor = `hsl(${Math.random()*360},70%,60%)`;
+        p.style.left = `${Math.random()*100}%`;
+        p.style.setProperty('--dx', (Math.random()*400-200)+'px');
+        p.style.setProperty('--rot', (Math.random()*720)+'deg');
+        p.style.animationDelay = (Math.random()*2)+'s';
+        c.appendChild(p);
+        setTimeout(()=>p.remove(),4000);
       }
     }
 
-    function appendMessage(who, msg){
+    function appendMessage(who,msg){
       const chat = document.getElementById('chatWindow');
       const d = document.createElement('div');
       d.innerHTML = `<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
@@ -243,118 +231,92 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    window.addEventListener('load', () => appendMessage('AI', 'Witaj! Wpisz "help" aby zobaczyć komendy.'));
+    window.addEventListener('load', ()=> appendMessage('AI','Witaj! Wpisz "help" aby zobaczyć komendy.'));
 
     async function sendAICommand(cmd){
       let text = cmd || document.getElementById('commandInput').value.trim();
       if(!text) return;
       document.getElementById('commandInput').value = '';
       appendMessage('User', text);
-      if(text.toLowerCase() === 'help'){
-        appendMessage('AI', `Dostępne komendy:
-• toggle_expensive – przełącz drogie reklamy
-• toggle_turbo – przełącz turbo
-• toggle_stealth – przełącz stealth
-• set_click_rate <0.05–0.80> – ustaw współczynnik kliknięć
-• boost – dodaj bonus +$10
-• reset – zresetuj statystyki`);
+      if(text.toLowerCase()==='help'){
+        appendMessage('AI', `Dostępne komendy:\n• toggle_expensive\n• toggle_turbo\n• toggle_stealth\n• set_click_rate <0.05–0.80>\n• boost\n• reset`);
         return;
       }
       try{
-        const [action,value] = text.split(' ');
+        const [action,value]=text.split(' ');
         const res = await fetch('/command', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({action,value})
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action,value})
         });
         const data = await res.json();
-        appendMessage('AI', data.message || JSON.stringify(data));
+        appendMessage('AI', data.message||JSON.stringify(data));
         updateModes(data);
-      }catch(e){
-        appendMessage('AI', 'Błąd komunikacji');
-      }
+      }catch(e){ appendMessage('AI','Błąd komunikacji'); }
     }
 
-    function updateModes(data){
-      if(data.expensive_mode !== undefined)
-        document.getElementById('expensiveMode').className = 'mode-indicator ' + (data.expensive_mode ? 'mode-active' : 'mode-inactive');
-      if(data.turbo_mode !== undefined)
-        document.getElementById('turboMode').className    = 'mode-indicator ' + (data.turbo_mode ? 'mode-active' : 'mode-inactive');
-      if(data.stealth_mode !== undefined)
-        document.getElementById('stealthMode').className  = 'mode-indicator ' + (data.stealth_mode ? 'mode-active' : 'mode-inactive');
+    function updateModes(d){
+      if(d.expensive_mode!==undefined)
+        document.getElementById('expensiveMode').className='mode-indicator '+(d.expensive_mode?'mode-active':'mode-inactive');
+      if(d.turbo_mode!==undefined)
+        document.getElementById('turboMode').className   ='mode-indicator '+(d.turbo_mode   ?'mode-active':'mode-inactive');
+      if(d.stealth_mode!==undefined)
+        document.getElementById('stealthMode').className ='mode-indicator '+(d.stealth_mode?'mode-active':'mode-inactive');
     }
 
     const ctx = document.getElementById('revenueChart').getContext('2d');
-    const chart = new Chart(ctx, {
+    const chart = new Chart(ctx,{
       type:'line',
-       {
-        labels: [],
-        datasets: [{
-          label: 'Revenue',
-           [],
-          borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.1)',
-          tension: 0.4
-        }]
+      {
+        labels:[],datasets:[{label:'Revenue',[],borderColor:'rgb(75,192,192)',backgroundColor:'rgba(75,192,192,0.1)',tension:0.4}]
       },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
+      options:{responsive:true,scales:{y:{beginAtZero:true}}}
     });
 
     async function fetchStats(){
-      try {
-        const res = await fetch('/stats');
-        const d = await res.json();
-        document.getElementById('imps').textContent     = d.imps.toLocaleString();
-        document.getElementById('clicks').textContent  = d.clicks.toLocaleString();
-        document.getElementById('ctr').textContent     = d.ctr + '%';
+      try{
+        const res=await fetch('/stats'),d=await res.json();
+        document.getElementById('imps').textContent = d.imps.toLocaleString();
+        document.getElementById('clicks').textContent= d.clicks.toLocaleString();
+        document.getElementById('ctr').textContent   = d.ctr+'%';
         document.getElementById('revenue').textContent = d.revenue.toFixed(2);
-        const now = new Date().toLocaleTimeString();
-        chartData.push({t: now, v: d.revenue});
-        if(chartData.length > 20) chartData.shift();
-        chart.data.labels = chartData.map(o => o.t);
-        chart.data.datasets[0].data = chartData.map(o => o.v);
+        const now=new Date().toLocaleTimeString();
+        chartData.push({t:now,v:d.revenue});
+        if(chartData.length>20) chartData.shift();
+        chart.data.labels=chartData.map(o=>o.t);
+        chart.data.datasets[0].data=chartData.map(o=>o.v);
         chart.update('none');
         if(d.ai_settings) updateModes(d.ai_settings);
-      } catch(e) {console.error(e);}
+      }catch(e){console.error(e);}
     }
 
     async function manualScan(){
-      await fetch('/scan', {method: 'POST'});
+      await fetch('/scan',{method:'POST'});
       clickCount++;
-      if(clickCount % 3 === 0) launchConfetti();
-      appendMessage('System', '⚡ MEGA SCAN executed!');
+      if(clickCount%3===0) launchConfetti();
+      appendMessage('System','⚡ MEGA SCAN executed!');
       fetchStats();
     }
 
-    // Links management
+    // affiliate links management
     async function loadLinks(){
       let res=await fetch('/links'),arr=await res.json();
-      let ul=document.getElementById('linksList'); ul.innerHTML='';
-      arr.forEach(l=>ul.innerHTML+=`<li>#${l.id} ${l.network} [w=${l.weight.toFixed(2)}]<br><small>${l.url}</small></li>`);
+      const ul=document.getElementById('linksList');
+      ul.innerHTML='';
+      arr.forEach(l=> ul.innerHTML+=`<li>#${l.id} ${l.network} [w=${l.weight.toFixed(2)}]<br><code>${l.url}</code></li>`);
     }
     async function addLink(){
-      let net = document.getElementById('network').value.trim();
-      let url = document.getElementById('url').value.trim();
-      if(!net||!url){alert("Wypełnij oba pola!");return;}
-      await fetch('/links', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({network: net, url: url})
-      });
-      document.getElementById('network').value = '';
-      document.getElementById('url').value = '';
+      const net=document.getElementById('network').value.trim();
+      const url=document.getElementById('url').value.trim();
+      if(!net||!url){ alert('Wypełnij pola'); return; }
+      await fetch('/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({network:net,url:url})});
+      document.getElementById('network').value='';
+      document.getElementById('url').value='';
       loadLinks();
     }
 
-    setInterval(fetchStats, 3000);
-    setInterval(loadLinks, 5000);
+    setInterval(fetchStats,3000);
+    setInterval(loadLinks,5000);
     fetchStats();
     loadLinks();
   </script>
