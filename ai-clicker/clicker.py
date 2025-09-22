@@ -38,9 +38,10 @@ def ai_face_loop():
             pass
         time.sleep(10)
 
-@app.route('/')
-def dashboard():
-    return f"""
+@app.route("/stats")
+def get_stats():
+    return jsonify(stats)
+
 <!DOCTYPE html>
 <html>
 <head><title>Ad Mining Dashboard</title></head>
