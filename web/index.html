@@ -1,43 +1,187 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>🚀 ULTIMATE Ad Mining Platform</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin:0; padding:20px; color:#fff; }
-    .container { max-width:1200px; margin:0 auto; }
-    h1 { text-align:center; font-size:2.5em; margin-bottom:30px; text-shadow:2px 2px 4px rgba(0,0,0,0.3); }
-    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; margin-bottom:30px; }
-    .card { background:rgba(255,255,255,0.95); color:#333; padding:25px; border-radius:15px; box-shadow:0 8px 25px rgba(0,0,0,0.2); text-align:center; transition:transform .3s; }
-    .card:hover { transform:translateY(-5px); }
-    .card h2 { margin:0 0 10px; font-size:2.5em; background:linear-gradient(45deg,#FF6B6B,#4ECDC4); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .card p { margin:0; color:#666; font-size:1em; }
-    .chart-container { background:rgba(255,255,255,0.95); border-radius:15px; padding:20px; margin-bottom:20px; box-shadow:0 8px 25px rgba(0,0,0,0.2); }
-    .controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; margin-bottom:30px; }
-    .control-panel { background:rgba(255,255,255,0.95); color:#333; padding:20px; border-radius:15px; box-shadow:0 8px 25px rgba(0,0,0,0.2); }
-    button { padding:12px 25px; border:none; border-radius:8px; background:linear-gradient(45deg,#FF6B6B,#4ECDC4); color:#fff; font-size:1em; cursor:pointer; transition:all .3s; margin:5px; }
-    button:hover { transform:scale(1.05); box-shadow:0 5px 15px rgba(0,0,0,0.3); }
-    #chatWindow { background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; max-height:300px; overflow-y:auto; padding:15px; margin-bottom:15px; font-family:'Courier New', monospace; color:#333; }
-    #commandInput { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:1em; margin-bottom:10px; }
-    .mode-indicator { display:inline-block; padding:4px 8px; border-radius:4px; font-size:.8em; margin:2px; }
-    .mode-active { background:#28a745; color:#fff; }
-    .mode-inactive { background:#6c757d; color:#fff; }
-    .confetti { position:fixed; width:100%; height:100%; top:0; left:0; pointer-events:none; z-index:9999; }
-    .confetti-piece { position:absolute; width:12px; height:8px; opacity:.9; animation:fall 4s linear forwards; }
-    @keyframes fall { to { transform:translate(var(--dx),100vh) rotate(var(--rot)); opacity:0; } }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.5em;
+      margin-bottom: 30px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      text-align: center;
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 2.5em;
+      background: linear-gradient(45deg,#FF6B6B,#4ECDC4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card p {
+      margin: 0;
+      color: #666;
+      font-size: 1em;
+    }
+    .chart-container {
+      background: rgba(255,255,255,0.95);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .control-panel {
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    button {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(45deg,#FF6B6B,#4ECDC4);
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin: 5px;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    #chatWindow {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 15px;
+      margin-bottom: 15px;
+      font-family: 'Courier New', monospace;
+      color: #333;
+    }
+    #commandInput {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1em;
+      margin-bottom: 10px;
+    }
+    .mode-indicator {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      margin: 2px;
+    }
+    .mode-active {
+      background: #28a745;
+      color: white;
+    }
+    .mode-inactive {
+      background: #6c757d;
+      color: white;
+    }
+    .confetti {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 12px;
+      height: 8px;
+      opacity: 0.9;
+      animation: fall 4s linear forwards;
+    }
+    @keyframes fall {
+      to { transform: translate(var(--dx), 100vh) rotate(var(--rot)); opacity: 0; }
+    }
+    .links {
+      margin-top: 20px;
+    }
+    .links input, .links button {
+      padding: 8px;
+      margin: 5px 2px;
+      width: calc(50% - 12px);
+      box-sizing: border-box;
+    }
+    .links ul {
+      list-style: none;
+      padding: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background: #fff;
+      color: #333;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .links ul li {
+      padding: 6px;
+      border-bottom: 1px solid #ddd;
+      font-size: 0.9em;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🚀 ULTIMATE Ad Mining Platform</h1>
+
     <div class="stats">
       <div class="card"><h2 id="imps">0</h2><p>👁️ Impressions</p></div>
       <div class="card"><h2 id="clicks">0</h2><p>🖱️ Clicks</p></div>
       <div class="card"><h2 id="ctr">0%</h2><p>📊 CTR</p></div>
       <div class="card"><h2>$<span id="revenue">0.00</span></h2><p>💰 Revenue</p></div>
     </div>
-    <div class="chart-container"><canvas id="revenueChart" width="800" height="300"></canvas></div>
+
+    <div class="chart-container">
+      <canvas id="revenueChart" width="800" height="300"></canvas>
+    </div>
+
     <div class="controls">
       <div class="control-panel">
         <h3>🎮 Quick Actions</h3>
@@ -47,35 +191,50 @@
         <button onclick="sendAICommand('toggle_stealth')">🥷 Stealth Mode</button>
         <div id="modes">
           <span id="expensiveMode" class="mode-indicator mode-inactive">💎 Expensive</span>
-          <span id="turboMode"     class="mode-indicator mode-inactive">🚀 Turbo</span>
-          <span id="stealthMode"   class="mode-indicator mode-inactive">🥷 Stealth</span>
+          <span id="turboMode" class="mode-indicator mode-inactive">🚀 Turbo</span>
+          <span id="stealthMode" class="mode-indicator mode-inactive">🥷 Stealth</span>
         </div>
       </div>
+
+      <div class="control-panel links">
+        <h3>Manage Affiliate Links</h3>
+        <input id="network" placeholder="Network name" />
+        <input id="url" placeholder="Affiliate URL with {SOURCE_ID} or {CLICK_ID}" />
+        <button onclick="addLink()">Add Link</button>
+        <ul id="linksList"></ul>
+      </div>
+
       <div class="control-panel">
         <h3>🤖 AI Command Center</h3>
         <div id="chatWindow"></div>
-        <input id="commandInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter') sendAICommand()">
+        <input id="commandInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter') sendAICommand()" />
         <button onclick="sendAICommand()">Send Command</button>
       </div>
     </div>
   </div>
+
   <div id="confetti" class="confetti"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     let clickCount = 0, chartData = [];
+
     function launchConfetti(){
-      const c = document.getElementById('confetti');
-      for(let i=0;i<100;i++){
-        const p=document.createElement('div'); p.className='confetti-piece';
-        p.style.backgroundColor=`hsl(${Math.random()*360},70%,60%)`;
-        p.style.left=`${Math.random()*100}%`;
-        p.style.setProperty('--dx',(Math.random()*400-200)+'px');
-        p.style.setProperty('--rot',(Math.random()*720)+'deg');
-        p.style.animationDelay=(Math.random()*2)+'s';
-        c.appendChild(p); setTimeout(()=>p.remove(),4000);
+      const container = document.getElementById('confetti');
+      for(let i=0; i<100; i++){
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.backgroundColor = `hsl(${Math.random()*360},70%,60%)`;
+        piece.style.left = `${Math.random()*100}%`;
+        piece.style.setProperty('--dx', (Math.random()*400-200)+'px');
+        piece.style.setProperty('--rot', (Math.random()*720)+'deg');
+        piece.style.animationDelay = (Math.random()*2) + 's';
+        container.appendChild(piece);
+        setTimeout(() => piece.remove(), 4000);
       }
     }
-    function appendMessage(who,msg){
+
+    function appendMessage(who, msg){
       const chat = document.getElementById('chatWindow');
       const d = document.createElement('div');
       d.innerHTML = `<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
@@ -83,13 +242,15 @@
       chat.appendChild(d);
       chat.scrollTop = chat.scrollHeight;
     }
-    window.addEventListener('load', () => appendMessage('AI','Witaj! Wpisz "help" aby zobaczyć komendy.'));
+
+    window.addEventListener('load', () => appendMessage('AI', 'Witaj! Wpisz "help" aby zobaczyć komendy.'));
+
     async function sendAICommand(cmd){
       let text = cmd || document.getElementById('commandInput').value.trim();
       if(!text) return;
       document.getElementById('commandInput').value = '';
       appendMessage('User', text);
-      if(text.toLowerCase()==='help'){
+      if(text.toLowerCase() === 'help'){
         appendMessage('AI', `Dostępne komendy:
 • toggle_expensive – przełącz drogie reklamy
 • toggle_turbo – przełącz turbo
@@ -99,34 +260,53 @@
 • reset – zresetuj statystyki`);
         return;
       }
-      try {
+      try{
         const [action,value] = text.split(' ');
         const res = await fetch('/command', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({action,value})
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({action,value})
         });
         const data = await res.json();
         appendMessage('AI', data.message || JSON.stringify(data));
         updateModes(data);
-      } catch(e){
-        appendMessage('AI','Błąd komunikacji');
+      }catch(e){
+        appendMessage('AI', 'Błąd komunikacji');
       }
     }
+
     function updateModes(data){
-      if(data.expensive_mode!==undefined)
-        document.getElementById('expensiveMode').className = 'mode-indicator '+(data.expensive_mode?'mode-active':'mode-inactive');
-      if(data.turbo_mode!==undefined)
-        document.getElementById('turboMode').className    = 'mode-indicator '+(data.turbo_mode   ?'mode-active':'mode-inactive');
-      if(data.stealth_mode!==undefined)
-        document.getElementById('stealthMode').className  = 'mode-indicator '+(data.stealth_mode?'mode-active':'mode-inactive');
+      if(data.expensive_mode !== undefined)
+        document.getElementById('expensiveMode').className = 'mode-indicator ' + (data.expensive_mode ? 'mode-active' : 'mode-inactive');
+      if(data.turbo_mode !== undefined)
+        document.getElementById('turboMode').className    = 'mode-indicator ' + (data.turbo_mode ? 'mode-active' : 'mode-inactive');
+      if(data.stealth_mode !== undefined)
+        document.getElementById('stealthMode').className  = 'mode-indicator ' + (data.stealth_mode ? 'mode-active' : 'mode-inactive');
     }
+
     const ctx = document.getElementById('revenueChart').getContext('2d');
-    const chart = new Chart(ctx,{
+    const chart = new Chart(ctx, {
       type:'line',
-      {labels:[],datasets:[{label:'Revenue',[],borderColor:'rgb(75,192,192)',backgroundColor:'rgba(75,192,192,0.1)',tension:0.4}]},
-      options:{responsive:true,scales:{y:{beginAtZero:true}}}
+       {
+        labels: [],
+        datasets: [{
+          label: 'Revenue',
+           [],
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.1)',
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
     });
+
     async function fetchStats(){
       try {
         const res = await fetch('/stats');
@@ -136,23 +316,47 @@
         document.getElementById('ctr').textContent     = d.ctr + '%';
         document.getElementById('revenue').textContent = d.revenue.toFixed(2);
         const now = new Date().toLocaleTimeString();
-        chartData.push({t:now,v:d.revenue});
-        if(chartData.length>20) chartData.shift();
-        chart.data.labels = chartData.map(o=>o.t);
-        chart.data.datasets[0].data = chartData.map(o=>o.v);
+        chartData.push({t: now, v: d.revenue});
+        if(chartData.length > 20) chartData.shift();
+        chart.data.labels = chartData.map(o => o.t);
+        chart.data.datasets[0].data = chartData.map(o => o.v);
         chart.update('none');
         if(d.ai_settings) updateModes(d.ai_settings);
-      } catch(e){ console.error(e); }
+      } catch(e) {console.error(e);}
     }
+
     async function manualScan(){
-      await fetch('/scan',{method:'POST'});
+      await fetch('/scan', {method: 'POST'});
       clickCount++;
-      if(clickCount%3===0) launchConfetti();
-      appendMessage('System','⚡ MEGA SCAN executed!');
+      if(clickCount % 3 === 0) launchConfetti();
+      appendMessage('System', '⚡ MEGA SCAN executed!');
       fetchStats();
     }
-    setInterval(fetchStats,3000);
+
+    // Links management
+    async function loadLinks(){
+      let res=await fetch('/links'),arr=await res.json();
+      let ul=document.getElementById('linksList'); ul.innerHTML='';
+      arr.forEach(l=>ul.innerHTML+=`<li>#${l.id} ${l.network} [w=${l.weight.toFixed(2)}]<br><small>${l.url}</small></li>`);
+    }
+    async function addLink(){
+      let net = document.getElementById('network').value.trim();
+      let url = document.getElementById('url').value.trim();
+      if(!net||!url){alert("Wypełnij oba pola!");return;}
+      await fetch('/links', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({network: net, url: url})
+      });
+      document.getElementById('network').value = '';
+      document.getElementById('url').value = '';
+      loadLinks();
+    }
+
+    setInterval(fetchStats, 3000);
+    setInterval(loadLinks, 5000);
     fetchStats();
+    loadLinks();
   </script>
 </body>
 </html>
