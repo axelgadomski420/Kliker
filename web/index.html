@@ -1,0 +1,19 @@
+<button onclick="fetch('/scan',{method:'POST'}).then(r=>r.json()).then(updateStats)">Magnes na reklamy</button>
+<button onclick="buyAd()">Kup reklamę</button>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+const stripe = Stripe('{{STRIPE_PUBLIC}}');
+function buyAd() {
+  fetch('/stripe/create-payment',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      amount: 5.00,
+      success_url: window.location.href,
+      cancel_url: window.location.href
+    })
+  })
+  .then(r=>r.json())
+  .then(data=> stripe.redirectToCheckout({sessionId:data.url.split('/').pop()}));
+}
+</script>
