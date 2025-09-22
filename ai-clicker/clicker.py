@@ -175,23 +175,30 @@ if __name__ == "__main__":
         t.start()
         logging.info(f"✅ Worker-{i+1} uruchomiony")
 # ─── API: Zarządzanie linkami ───────────────────────────────────────────────
-@app.route("/links", methods=["GET","POST"])
+@app.route("/links", methods=["GET", "POST"])
 def links_api():
     if request.method == "GET":
         return jsonify(load_links())
-        data = request.get_json()
+
+    data = request.get_json()
     if not data or "network" not in data or "url" not in 
         return jsonify({"error": "network i url wymagane"}), 400
 
     links = load_links()
-    new_id = (max([l["id"] for l in links]) + 1) if links else 1
-    new = {"id": new_id, "network": data["network"], "url": data["url"], "weight": 1.0}
+    new_id = max([l["id"] for l in links], default=0) + 1
+    new = {
+        "id": new_id,
+        "network": data["network"],
+        "url": data["url"],
+        "weight": 1.0
+    }
     links.append(new)
     save_links(links)
     logging.info(f"Dodano link: {new}")
     return jsonify(new), 201
 
 # ─── API: Statystyki ─────────────────────────────────────────────────────────
+
 @app.route("/links", methods=["GET","POST"])
 def links_api():
     if request.method == "GET":
