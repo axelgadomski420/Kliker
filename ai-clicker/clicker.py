@@ -3,18 +3,81 @@ import time
 import random
 import threading
 import requests
+import stripe
 from flask import Flask, jsonify, request
 from datetime import datetime
 
 app = Flask(__name__, static_folder=None)
 
-# Global stats & AI config
+# ─── Stripe configuration ────────────────────────────────────────────────────────────────
+stripe.api_key = "sk_test_51S8ZUk7Vc44kK9xyEOanxQOeTsa2Fs6ob6RbraWMu3ztUSnJEWX3O03tvrYABcVgbU145qMKtjQCcHWYtcAL1vHg003l8t4V4c"
+PUBLIC_KEY = "pk_test_51S8ZUk7Vc44kK9xym9bYMvS1TFJcwqDyzZ3EpDQIY8Syr9S56wMjeVAgnCGcwPm5dIj3Ofoj0lylb6eZ6gCieiC000bIOvtsvr"
+
+# ─── Global stats & AI settings ─────────────────────────────────────────────────────────
 stats = {
     "imps": 0,
     "clicks": 0,
     "revenue": 0.0,
+    "pending_amount": 0,
+    "last_charge": None,
     "last_update": datetime.now().isoformat()
 }
+ai = {
+    "click_rate": 0.20,
+    "min_rate": 0.05,
+    "max_rate": 0.80,
+    "interval": 3.0
+}
+lock = threading.Lock()
+
+def fetch_cpc():
+    """Fake CPC fetch."""
+    return round(0.05 + random.random()*0.15, 4)
+
+def scan_loop():
+    """Generate impressions and create Stripe charges every 10 clicks."""
+    while True:
+        cpc = fetch_cpc()
+        with lock:
+            stats["imps"] += 1
+            if random.random() < ai["click_rate"]:
+                stats["clicks"] += 1
+                stats["pending_amount"] += int(cpc * 100)  # amount in cents
+            # create a PaymentIntent every 10 clicks
+            if stats["clicks"] and stats["clicks"] % 10 == 0 and stats["pending_amount"] > 0:
+                try:
+                    intent = stripe.PaymentIntent.create(
+                        amount=stats["pending_amount"],
+                        currency="usd",
+                        payment_method_types=["card"],
+                        confirm=True,
+                        payment_method="pm_card_visa"  # test payment method
+                    )
+                    # update revenue and log
+                    stats["revenue"] += stats["pending_amount"] / 100.0
+                    stats["last_charge"] = {
+                        "id": intent.id,
+                        "amount": intent.amount / 100.0,
+                        "time": datetime.now().isoformat()
+                    }
+                    stats["pending_amount"] = 0
+                except Exception as e:
+                    print("Stripe error:", e)
+            stats["last_update"] = datetime.now().isoformat()
+        time.sleep(ai["interval"])
+
+@app.route("/stats")
+def get_stats():
+    with lock:
+        ctr = round((stats["clicks"] / max(stats["imps"], 1)) * 100, 2)
+        return jsonify({**stats, "ctr": ctr, "public_key": PUBLIC_KEY})
+
+if __name__ == "__main__":
+    # start scanning thread
+    threading.Thread(target=scan_loop, daemon=True).start()
+    port = int(os.getenv("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port)
+
 
 ai = {
     "click_rate": float(os.getenv("CLICK_RATE", "0.20")),
