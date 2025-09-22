@@ -179,9 +179,10 @@ if __name__ == "__main__":
 def links_api():
     if request.method == "GET":
         return jsonify(load_links())
-    data = request.get_json()
+        data = request.get_json()
     if not data or "network" not in data or "url" not in 
-        return jsonify({"error":"network i url wymagane"}), 400
+        return jsonify({"error": "network i url wymagane"}), 400
+
     links = load_links()
     new_id = (max([l["id"] for l in links]) + 1) if links else 1
     new = {"id": new_id, "network": data["network"], "url": data["url"], "weight": 1.0}
