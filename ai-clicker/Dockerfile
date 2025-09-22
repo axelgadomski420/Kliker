@@ -1,19 +1,22 @@
-FROM python:3.11-alpine
+FROM openresty/openresty:alpine
 
-WORKDIR /app
-
-# System dependencies
 RUN apk add --no-cache curl
+RUN mkdir -p /usr/share/nginx/html /var/log/nginx
 
-# Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# VPN files
+COPY ../vpnbook/ /vpnbook/
 
-COPY clicker.py .
+# Nginx config
+COPY nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY nginx/conf.d/    /usr/local/openresty/nginx/conf/conf.d/
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:5000/health || exit 1
+# Frontend
+COPY ../web/          /usr/share/nginx/html/
 
-EXPOSE 5000
+RUN chmod -R 755 /usr/share/nginx/html /vpnbook
 
-CMD ["python", "clicker.py"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -f http://localhost/stats || exit 1
+
+EXPOSE 80
+CMD ["openresty","-g","daemon off;"]
