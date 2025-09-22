@@ -191,11 +191,13 @@ def links_api():
     return jsonify(new), 201
 
 # ─── API: Statystyki ─────────────────────────────────────────────────────────
-@app.route("/stats")
-def stats_api():
-    with lock:
-        ctr = round(stats["clicks"] / max(stats["imps"],1) * 100, 2)
-        return jsonify({**stats, "ctr": ctr})
+@app.route("/links", methods=["GET","POST"])
+def links_api():
+    if request.method == "GET":
+        return jsonify(load_links())
+    data = request.get_json()
+if not data or "network" not in data or "url" not in 
+    return jsonify({"error":"network i url wymagane"}), 400
 
 # ─── API: Komendy AI ─────────────────────────────────────────────────────────
 @app.route("/command", methods=["POST"])
