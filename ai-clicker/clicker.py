@@ -12,6 +12,8 @@ app = Flask(__name__)
 
 # Stats
 stats = {"imps": 0, "clicks": 0}
+stats = {"imps": 0, "clicks": 0, "revenue": 0.0}
+stats["revenue"] = round(stats["clicks"] * float(os.getenv('CPC', '0.05')), 2)
 
 def ai_face_loop():
     """Headless browsing co 10 sekund."""
