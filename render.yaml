@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: ad-mine-nginx
+    runtime: docker
+    dockerfilePath: nginx/Dockerfile
+    plan: starter
+    envVars:
+      - key: TARGET_URL
+        value: https://httpbin.org/status/200
+      - key: CLICK_RATE
+        value: "0.20"
+      - key: STRIPE_SECRET
+        value: sk_test_…
+      - key: STRIPE_PUBLIC
+        value: pk_test_…
+      - key: HUG_TOKEN
+        value: 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
+      - key: VPN_CONFIG_PATH
+        value: /vpnbook/PL134.ovpn
+      - key: NGINX_URL
+        value: https://<your-service>.onrender.com
+
+  - type: worker
+    name: ad-mine-clicker
+    runtime: docker
+    dockerfilePath: ai-clicker/Dockerfile
+    plan: starter
+    envVars:
+      - key: CLICK_RATE
+        value: "0.20"
+      - key: NGINX_URL
+        value: https://<your-service>.onrender.com
+      - key: STRIPE_SECRET
+        value: sk_test_…
+      - key: STRIPE_PUBLIC
+        value: pk_test_…
+      - key: HUG_TOKEN
+        value: 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
+      - key: VPN_CONFIG_PATH
+        value: /vpnbook/PL134.ovpn
