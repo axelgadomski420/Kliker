@@ -192,13 +192,24 @@ def premium_scan_worker(worker_id):
 
 # ---------------- Flask routes -----------------
 @app.route("/links", methods=["GET","POST"])
-def manage_links():
+def links_api():
     if request.method == "GET":
         return jsonify(load_links())
     data = request.get_json()
     if not data or "network" not in data or "url" not in 
-        return jsonify({"error": "Missing network or url"}), 400
-    
+        return jsonify({"error":"network and url required"}), 400
+    links = load_links()
+    new_id = max([l["id"] for l in links], default=0) + 1
+    new_link = {
+        "id": new_id,
+        "network": data["network"],
+        "url": data["url"],
+        "weight": 1.0
+    }
+    links.append(new_link)
+    save_links(links)
+    return jsonify(new_link), 201
+
     links = load_links()
     new_id = max([l["id"] for l in links], default=0) + 1
     new_link = {
