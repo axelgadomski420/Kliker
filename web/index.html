@@ -1,278 +1,150 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>🚀 ULTIMATE Ad Mining Platform</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 20px; color: #fff; }
-  .container { max-width: 1200px; margin: 0 auto; }
-  h1 { text-align: center; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-size: 2.5em; margin-bottom: 30px; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-  .card { background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); text-align: center; transition: transform 0.3s; }
-  .card:hover { transform: translateY(-5px); }
-  .card h2 { margin: 0 0 10px; font-size: 2.5em; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .card p { margin: 0; color: #666; font-size: 1em; }
-  .chart-container { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
-  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
-  .control-panel { background: rgba(255,255,255,0.95); color: #333; padding: 20px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
-  button { padding: 12px 25px; border: none; border-radius: 8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); color: white; font-size: 1em; cursor: pointer; transition: all 0.3s; margin: 5px; }
-  button:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-  #chatWindow { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; max-height: 300px; overflow-y: auto; padding: 15px; margin-bottom: 15px; font-family: 'Courier New', monospace; color: #333; }
-  #commandInput { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; margin-bottom: 10px; }
-  .mode-indicator { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin: 2px; }
-  .mode-active { background: #28a745; color: white; }
-  .mode-inactive { background: #6c757d; color: white; }
-  .confetti { position: fixed; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 9999; }
-  .confetti-piece { position: absolute; width: 12px; height: 8px; opacity: 0.9; animation: fall 4s linear forwards; }
-  @keyframes fall { to { transform: translate(var(--dx), 100vh) rotate(var(--rot)); opacity: 0; } }
+  *{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);margin:0;padding:20px;color:#fff}
+  .container{max-width:1200px;margin:0 auto}h1{text-align:center;
+  text-shadow:2px 2px 4px rgba(0,0,0,0.3);font-size:2.5em;margin-bottom:30px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}
+  .card{background:rgba(255,255,255,0.95);color:#333;padding:25px;border-radius:15px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.2);text-align:center;transition:transform .3s}
+  .card:hover{transform:translateY(-5px)}.card h2{margin:0 0 10px;font-size:2.5em;
+  background:linear-gradient(45deg,#FF6B6B,#4ECDC4);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent}.card p{margin:0;color:#666;font-size:1em}
+  .chart-container{background:rgba(255,255,255,0.95);border-radius:15px;padding:20px;
+  margin-bottom:20px;box-shadow:0 8px 25px rgba(0,0,0,0.2)}.controls{display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:30px}
+  .control-panel{background:rgba(255,255,255,0.95);color:#333;padding:20px;
+  border-radius:15px;box-shadow:0 8px 25px rgba(0,0,0,0.2)}button{padding:12px 25px;
+  border:none;border-radius:8px;background:linear-gradient(45deg,#FF6B6B,#4ECDC4);
+  color:white;font-size:1em;cursor:pointer;transition:all .3s;margin:5px}
+  button:hover{transform:scale(1.05);box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+  #chatWindow{background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;
+  max-height:300px;overflow-y:auto;padding:15px;margin-bottom:15px;font-family:'Courier New',monospace;color:#333}
+  #commandInput{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;
+  font-size:1em;margin-bottom:10px}.mode-indicator{display:inline-block;
+  padding:4px 8px;border-radius:4px;font-size:.8em;margin:2px}.mode-active{background:#28a745;color:#fff}
+  .mode-inactive{background:#6c757d;color:#fff}.confetti{position:fixed;width:100%;height:100%;top:0;
+  left:0;pointer-events:none;z-index:9999}.confetti-piece{position:absolute;width:12px;
+  height:8px;opacity:.9;animation:fall 4s linear forwards}@keyframes fall{to{
+  transform:translate(var(--dx),100vh) rotate(var(--rot));opacity:0}}
 </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🚀 ULTIMATE Ad Mining Platform</h1>
-    <div class="stats">
-      <div class="card"><h2 id="imps">0</h2><p>👁️ Impressions</p></div>
-      <div class="card"><h2 id="clicks">0</h2><p>🖱️ Clicks</p></div>
-      <div class="card"><h2 id="ctr">0%</h2><p>📊 CTR</p></div>
-      <div class="card"><h2>$<span id="revenue">0.00</span></h2><p>💰 Revenue</p></div>
+<div class="container">
+  <h1>🚀 ULTIMATE Ad Mining Platform</h1>
+  <div class="stats">
+    <div class="card"><h2 id="imps">0</h2><p>👁️ Impressions</p></div>
+    <div class="card"><h2 id="clicks">0</h2><p>🖱️ Clicks</p></div>
+    <div class="card"><h2 id="ctr">0%</h2><p>📊 CTR</p></div>
+    <div class="card"><h2>$<span id="revenue">0.00</span></h2><p>💰 Revenue</p></div>
+  </div>
+  <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+  <div class="controls">
+    <div class="control-panel">
+      <h3>🎮 Quick Actions</h3>
+      <button onclick="manualScan()">⚡ MEGA SCAN</button>
+      <button onclick="sendAICommand('toggle_expensive')">💎 Expensive Mode</button>
+      <button onclick="sendAICommand('toggle_turbo')">🚀 Turbo Mode</button>
+      <button onclick="sendAICommand('toggle_stealth')">🥷 Stealth Mode</button>
+      <div id="modes">
+        <span id="expensiveMode" class="mode-indicator mode-inactive">💎 Expensive</span>
+        <span id="turboMode"     class="mode-indicator mode-inactive">🚀 Turbo</span>
+        <span id="stealthMode"   class="mode-indicator mode-inactive">🥷 Stealth</span>
+      </div>
     </div>
-    <div class="chart-container"><canvas id="revenueChart" width="800" height="300"></canvas></div>
-    <div class="controls">
-      <div class="control-panel">
-        <h3>🎮 Quick Actions</h3>
-        <button onclick="manualScan()">⚡ MEGA SCAN</button>
-        <button onclick="sendAICommand('toggle_expensive')">💎 Expensive Mode</button>
-        <button onclick="sendAICommand('toggle_turbo')">🚀 Turbo Mode</button>
-        <button onclick="sendAICommand('toggle_stealth')">🥷 Stealth Mode</button>
-        <div id="modes">
-          <span class="mode-indicator mode-inactive" id="expensiveMode">💎 Expensive</span>
-          <span class="mode-indicator mode-inactive" id="turboMode">🚀 Turbo</span>
-          <span class="mode-indicator mode-inactive" id="stealthMode">🥷 Stealth</span>
-        </div>
-      </div>
-      <div class="control-panel">
-        <h3>🤖 AI Command Center</h3>
-        <div id="chatWindow"></div>
-        <input type="text" id="commandInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter') sendAICommand()">
-        <button onclick="sendAICommand()">Send Command</button>
-      </div>
+    <div class="control-panel">
+      <h3>🤖 AI Command Center</h3>
+      <div id="chatWindow"></div>
+      <input id="commandInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter')sendAICommand()">
+      <button onclick="sendAICommand()">Send Command</button>
     </div>
   </div>
-  <div id="confetti" class="confetti"></div>
+</div>
+<div id="confetti" class="confetti"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  let clickCount=0, chartData=[];
-  // Confetti
-  function launchConfetti(){
-    const c=document.getElementById('confetti');
-    for(let i=0;i<150;i++){const p=document.createElement('div');p.className='confetti-piece';
-      p.style.backgroundColor=`hsl(${Math.random()*360},70%,60%)`;p.style.left=`${Math.random()*100}%`;
-      p.style.setProperty('--dx',(Math.random()*400-200)+'px');p.style.setProperty('--rot',(Math.random()*720)+'deg');
-      p.style.animationDelay=(Math.random()*2)+'s';c.appendChild(p);setTimeout(()=>p.remove(),4000);}
+let clickCount=0,chartData=[];
+function launchConfetti(){
+  const c=document.getElementById('confetti');
+  for(let i=0;i<100;i++){
+    const p=document.createElement('div');p.className='confetti-piece';
+    p.style.backgroundColor=`hsl(${Math.random()*360},70%,60%)`;
+    p.style.left=`${Math.random()*100}%`;
+    p.style.setProperty('--dx',(Math.random()*400-200)+'px');
+    p.style.setProperty('--rot',(Math.random()*720)+'deg');
+    p.style.animationDelay=(Math.random()*2)+'s';
+    c.appendChild(p);setTimeout(()=>p.remove(),4000);
   }
-  // Chat
-  function appendMessage(who,msg){
-    const chat=document.getElementById('chatWindow');
-    const d=document.createElement('div');
-    d.innerHTML=`<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
-    d.style.marginBottom='8px';chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
-  }
-  window.addEventListener('load',()=>appendMessage('AI','Witaj! Wpisz "help" aby zobaczyć komendy.'));
-  async function sendAICommand(inputCmd){
-    const input=text=>{ appendMessage('User',text);return text; };
-    const text=inputCmd||document.getElementById('commandInput').value.trim();
-    if(!text)return;
-    document.getElementById('commandInput').value='';
-    if(text.toLowerCase()==='help'){
-      appendMessage('AI',`Dostępne komendy:
+}
+function appendMessage(who,msg){
+  const chat=document.getElementById('chatWindow');
+  const d=document.createElement('div');
+  d.innerHTML=`<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
+  d.style.marginBottom='6px';chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
+}
+window.addEventListener('load',()=>appendMessage('AI','Witaj! Wpisz "help" aby zobaczyć komendy.'));
+async function sendAICommand(cmd){
+  let text=cmd||document.getElementById('commandInput').value.trim();
+  if(!text)return;
+  document.getElementById('commandInput').value='';
+  appendMessage('User',text);
+  if(text.toLowerCase()==='help'){
+    appendMessage('AI',`Dostępne komendy:
 • toggle_expensive – przełącz drogie reklamy
 • toggle_turbo – przełącz turbo
 • toggle_stealth – przełącz stealth
 • set_click_rate <0.05–0.80> – ustaw click_rate
 • boost – bonus +$10
 • reset – reset statystyk`);
-      return;
-    }
-    appendMessage('User',text);
-    try{
-      const [action,value]=text.split(' ');
-      const res=await fetch('/command',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action,value})});
-      const data=await res.json();
-      appendMessage('AI',data.message||JSON.stringify(data));
-      updateModes(data);
-    }catch(e){appendMessage('AI','Błąd komunikacji');}
+    return;
   }
-  function updateModes(data){
-    if(data.expensive_mode!==undefined)document.getElementById('expensiveMode').className='mode-indicator '+(data.expensive_mode?'mode-active':'mode-inactive');
-    if(data.turbo_mode   !==undefined)document.getElementById('turboMode').className   ='mode-indicator '+(data.turbo_mode   ?'mode-active':'mode-inactive');
-    if(data.stealth_mode !==undefined)document.getElementById('stealthMode').className ='mode-indicator '+(data.stealth_mode ?'mode-active':'mode-inactive');
-  }
-  // Chart & Stats
-  const ctx=document.getElementById('revenueChart').getContext('2d');
-  const chart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{label:'Revenue',data:[],borderColor:'rgb(75,192,192)',backgroundColor:'rgba(75,192,192,0.1)',tension:0.4}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
-  async function fetchStats(){
-    try{
-      const res=await fetch('/stats'),d=await res.json();
-      document.getElementById('imps').textContent=d.imps;
-      document.getElementById('clicks').textContent=d.clicks;
-      document.getElementById('ctr').textContent=d.ctr+'%';
-      document.getElementById('revenue').textContent=d.revenue.toFixed(2);
-      const now=new Date().toLocaleTimeString();
-      chartData.push({t:now,v:d.revenue});
-      if(chartData.length>20)chartData.shift();
-      chart.data.labels=chartData.map(o=>o.t);
-      chart.data.datasets[0].data=chartData.map(o=>o.v);
-      chart.update('none');
-      if(d.ai_settings)updateModes(d.ai_settings);
-    }catch(e){console.error(e);}
-  }
-  async function manualScan(){
-    await fetch('/scan',{method:'POST'});clickCount++;
-    if(clickCount%3===0)launchConfetti();
-    appendMessage('AI','⚡ MEGA SCAN executed!');
-    fetchStats();
-  }
-  setInterval(fetchStats,3000);fetchStats();
-</script>
-</body>
-</html>
-
-</style>
-</head>
-<body>
-  <div class="container">
-    <h1>🚀 ULTIMATE Ad Mining Platform</h1>
-    <!-- statystyki i wykres -->
-    <div class="stats">
-      <div class="card"><h2 id="imps">0</h2><p>👁️ Impressions</p></div>
-      <div class="card"><h2 id="clicks">0</h2><p>🖱️ Clicks</p></div>
-      <div class="card"><h2 id="ctr">0%</h2><p>📊 CTR</p></div>
-      <div class="card"><h2>$<span id="revenue">0.00</span></h2><p>💰 Revenue</p></div>
-    </div>
-    <div class="chart-container"><canvas id="revenueChart" width="800" height="300"></canvas></div>
-    <div class="controls">
-      <div class="control-panel">
-        <h3>🎮 Quick Actions</h3>
-        <button onclick="manualScan()">⚡ MEGA SCAN</button>
-        <button onclick="sendAICommand('toggle_expensive')">💎 Expensive Mode</button>
-        <button onclick="sendAICommand('toggle_turbo')">🚀 Turbo Mode</button>
-        <button onclick="sendAICommand('toggle_stealth')">🥷 Stealth Mode</button>
-        <div id="modes">
-          <span class="mode-indicator mode-inactive" id="expensiveMode">💎 Expensive</span>
-          <span class="mode-indicator mode-inactive" id="turboMode">🚀 Turbo</span>
-          <span class="mode-indicator mode-inactive" id="stealthMode">🥷 Stealth</span>
-        </div>
-      </div>
-      <div class="control-panel">
-        <h3>🤖 AI Command Center</h3>
-        <div id="chatWindow"></div>
-        <input type="text" id="commandInput" placeholder="Enter command..." onkeypress="if(event.key==='Enter') sendAICommand()">
-        <button onclick="sendAICommand()">Send Command</button>
-      </div>
-    </div>
-  </div>
-  <div id="confetti" class="confetti"></div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  let clickCount = 0, chartData = [];
-
-  function launchConfetti(){
-    const c=document.getElementById('confetti');
-    for(let i=0;i<50;i++){const p=document.createElement('div');p.className='confetti-piece';
-      p.style.backgroundColor=`hsl(${Math.random()*360},70%,60%)`;p.style.left=`${Math.random()*100}%`;
-      p.style.setProperty('--dx',(Math.random()*200-100)+'px');p.style.setProperty('--rot',(Math.random()*360)+'deg');
-      p.style.animationDelay=(Math.random()*1)+'s';c.appendChild(p);setTimeout(()=>p.remove(),3000);}
-  }
-
-  function appendMessage(who,msg){
-    const chat=document.getElementById('chatWindow');
-    const d=document.createElement('div');
-    d.innerHTML=`<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
-    d.style.marginBottom='6px';chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
-  }
-
-  window.addEventListener('load',()=>appendMessage('AI','Witaj! Wpisz "help" aby zobaczyć komendy.'));
-
-  async function sendAICommand(cmd){
-    // Jeśli cmd nie podane, pobierz z inputa
-    let text = cmd || document.getElementById('commandInput').value.trim();
-    if(!text) return;
-    document.getElementById('commandInput').value = '';
-    appendMessage('User', text);
-
-    if(text.toLowerCase() === 'help'){
-      appendMessage('AI', `Dostępne komendy:
-• toggle_expensive – przełącz drogie reklamy
-• toggle_turbo – przełącz turbo
-• toggle_stealth – przełącz stealth
-• set_click_rate <0.05–0.80> – ustaw click_rate
-• boost – bonus +$10
-• reset – reset statystyk`);
-      return;
-    }
-
-    try {
-      const [action, value] = text.split(' ');
-      const res = await fetch('/command', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({action, value})
-      });
-      const data = await res.json();
-      appendMessage('AI', data.message || JSON.stringify(data));
-      updateModes(data);
-    } catch(e){
-      appendMessage('AI', 'Błąd komunikacji');
-    }
-  }
-
-  function updateModes(data){
-    if(data.expensive_mode !== undefined)
-      document.getElementById('expensiveMode').className = 'mode-indicator ' + (data.expensive_mode ? 'mode-active':'mode-inactive');
-    if(data.turbo_mode !== undefined)
-      document.getElementById('turboMode').className = 'mode-indicator ' + (data.turbo_mode ? 'mode-active':'mode-inactive');
-    if(data.stealth_mode !== undefined)
-      document.getElementById('stealthMode').className = 'mode-indicator ' + (data.stealth_mode ? 'mode-active':'mode-inactive');
-  }
-
-  const ctx = document.getElementById('revenueChart').getContext('2d');
-  const chart = new Chart(ctx, {
-    type:'line',
-    data:{labels:[],datasets:[{label:'Revenue',data:[],borderColor:'rgb(75,192,192)',backgroundColor:'rgba(75,192,192,0.1)',tension:0.4}]},
-    options:{responsive:true,scales:{y:{beginAtZero:true}}}
-  });
-
-  async function fetchStats(){
-    try {
-      const res = await fetch('/stats');
-      const d = await res.json();
-      document.getElementById('imps').textContent = d.imps.toLocaleString();
-      document.getElementById('clicks').textContent = d.clicks.toLocaleString();
-      document.getElementById('ctr').textContent = d.ctr + '%';
-      document.getElementById('revenue').textContent = d.revenue.toFixed(2);
-      // update chart
-      const now = new Date().toLocaleTimeString();
-      chartData.push({t:now,v:d.revenue});
-      if(chartData.length>20) chartData.shift();
-      chart.data.labels = chartData.map(o=>o.t);
-      chart.data.datasets[0].data = chartData.map(o=>o.v);
-      chart.update('none');
-      if(d.ai_settings) updateModes(d.ai_settings);
-    } catch(e){
-      console.error('Stats fetch failed:', e);
-    }
-  }
-
-  async function manualScan(){
-    await fetch('/scan',{method:'POST'});
-    clickCount++;
-    if(clickCount%3===0) launchConfetti();
-    appendMessage('System','⚡ MEGA SCAN executed!');
-    fetchStats();
-  }
-
-  setInterval(fetchStats,3000);
+  try{
+    const [action,value]=text.split(' ');
+    const res=await fetch('/command',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,value})});
+    const data=await res.json();
+    appendMessage('AI',data.message||JSON.stringify(data));
+    updateModes(data);
+  }catch(e){appendMessage('AI','Błąd komunikacji');}
+}
+function updateModes(data){
+  if(data.expensive_mode!==undefined)
+    document.getElementById('expensiveMode').className='mode-indicator '+(data.expensive_mode?'mode-active':'mode-inactive');
+  if(data.turbo_mode!==undefined)
+    document.getElementById('turboMode').className='mode-indicator '+(data.turbo_mode?'mode-active':'mode-inactive');
+  if(data.stealth_mode!==undefined)
+    document.getElementById('stealthMode').className='mode-indicator '+(data.stealth_mode?'mode-active':'mode-inactive');
+}
+const ctx=document.getElementById('revenueChart').getContext('2d');
+const chart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{label:'Revenue',data:[],borderColor:'rgb(75,192,192)',backgroundColor:'rgba(75,192,192,0.1)',tension:0.4}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
+async function fetchStats(){
+  try{
+    const res=await fetch('/stats'),d=await res.json();
+    document.getElementById('imps').textContent=d.imps.toLocaleString();
+    document.getElementById('clicks').textContent=d.clicks.toLocaleString();
+    document.getElementById('ctr').textContent=d.ctr+'%';
+    document.getElementById('revenue').textContent=d.revenue.toFixed(2);
+    const now=new Date().toLocaleTimeString();
+    chartData.push({t:now,v:d.revenue});
+    if(chartData.length>20)chartData.shift();
+    chart.data.labels=chartData.map(o=>o.t);
+    chart.data.datasets[0].data=chartData.map(o=>o.v);
+    chart.update('none');
+    if(d.ai_settings)updateModes(d.ai_settings);
+  }catch(e){console.error(e);}
+}
+async function manualScan(){
+  await fetch('/scan',{method:'POST'});
+  clickCount++;
+  if(clickCount%3===0)launchConfetti();
+  appendMessage('System','⚡ MEGA SCAN executed!');
   fetchStats();
+}
+setInterval(fetchStats,3000);
+fetchStats();
 </script>
 </body>
 </html>
