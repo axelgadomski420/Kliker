@@ -1,0 +1,4 @@
+flask==2.3.3
+requests==2.31.0
+stripe==5.0.0
+huggingface-hub==0.13.2
