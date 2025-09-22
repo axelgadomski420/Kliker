@@ -23,70 +23,13 @@ stats = {
     "last_update": datetime.now().isoformat()
 }
 ai = {
-    "click_rate": 0.20,
-    "min_rate": 0.05,
-    "max_rate": 0.80,
-    "interval": 3.0
-}
-lock = threading.Lock()
-
-def fetch_cpc():
-    """Fake CPC fetch."""
-    return round(0.05 + random.random()*0.15, 4)
-
-def scan_loop():
-    """Generate impressions and create Stripe charges every 10 clicks."""
-    while True:
-        cpc = fetch_cpc()
-        with lock:
-            stats["imps"] += 1
-            if random.random() < ai["click_rate"]:
-                stats["clicks"] += 1
-                stats["pending_amount"] += int(cpc * 100)  # amount in cents
-            # create a PaymentIntent every 10 clicks
-            if stats["clicks"] and stats["clicks"] % 10 == 0 and stats["pending_amount"] > 0:
-                try:
-                    intent = stripe.PaymentIntent.create(
-                        amount=stats["pending_amount"],
-                        currency="usd",
-                        payment_method_types=["card"],
-                        confirm=True,
-                        payment_method="pm_card_visa"  # test payment method
-                    )
-                    # update revenue and log
-                    stats["revenue"] += stats["pending_amount"] / 100.0
-                    stats["last_charge"] = {
-                        "id": intent.id,
-                        "amount": intent.amount / 100.0,
-                        "time": datetime.now().isoformat()
-                    }
-                    stats["pending_amount"] = 0
-                except Exception as e:
-                    print("Stripe error:", e)
-            stats["last_update"] = datetime.now().isoformat()
-        time.sleep(ai["interval"])
-
-@app.route("/stats")
-def get_stats():
-    with lock:
-        ctr = round((stats["clicks"] / max(stats["imps"], 1)) * 100, 2)
-        return jsonify({**stats, "ctr": ctr, "public_key": PUBLIC_KEY})
-
-if __name__ == "__main__":
-    # start scanning thread
-    threading.Thread(target=scan_loop, daemon=True).start()
-    port = int(os.getenv("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port)
-
-
-ai = {
     "click_rate": float(os.getenv("CLICK_RATE", "0.20")),
-    "expensive_mode": False,
-    "turbo_mode": False,
-    "stealth_mode": True,
     "min_rate": 0.05,
     "max_rate": 0.80,
     "interval": 3.0,
+    "expensive_mode": False,
+    "turbo_mode": False,
+    "stealth_mode": True,
     "history": [],
     "milestones": [10, 50, 100, 250, 500, 1000],
     "achievements": [],
@@ -116,7 +59,7 @@ def fetch_cpc():
     }
     try:
         proxy = get_random_proxy()
-        r = requests.get("https://httpbin.org/json", proxies=proxy, headers=headers, timeout=2)
+        requests.get("https://httpbin.org/json", proxies=proxy, headers=headers, timeout=2)
         return round(0.05 + random.random() * 0.15, 4)
     except:
         return ai["click_rate"]
@@ -133,10 +76,10 @@ def smart_timing_multiplier():
 
 def check_achievements():
     new = []
-    for milestone in ai["milestones"][:]:
-        if stats["revenue"] >= milestone:
-            new.append(f"💰 Reached ${milestone} revenue!")
-            ai["milestones"].remove(milestone)
+    for m in ai["milestones"][:]:
+        if stats["revenue"] >= m:
+            new.append(f"💰 Reached ${m} revenue!")
+            ai["milestones"].remove(m)
     if stats["clicks"] >= 100 and "First Century" not in ai["achievements"]:
         new.append("🎯 First Century - 100 clicks!")
         ai["achievements"].append("First Century")
@@ -161,7 +104,26 @@ def premium_scan_engine(worker_id):
                 rate *= random.uniform(0.8, 1.2)
             if random.random() < min(rate, 0.95):
                 stats["clicks"] += 1
-            stats["revenue"] = round(stats["clicks"] * cpc, 2)
+                stats["pending_amount"] += int(cpc * 100)
+            # create a PaymentIntent every 10 clicks
+            if stats["clicks"] and stats["clicks"] % 10 == 0 and stats["pending_amount"] > 0:
+                try:
+                    intent = stripe.PaymentIntent.create(
+                        amount=stats["pending_amount"],
+                        currency="usd",
+                        payment_method_types=["card"],
+                        confirm=True,
+                        payment_method="pm_card_visa"
+                    )
+                    stats["revenue"] += stats["pending_amount"] / 100.0
+                    stats["last_charge"] = {
+                        "id": intent.id,
+                        "amount": intent.amount / 100.0,
+                        "time": datetime.now().isoformat()
+                    }
+                    stats["pending_amount"] = 0
+                except Exception as e:
+                    print("Stripe error:", e)
             stats["last_update"] = datetime.now().isoformat()
             ai["history"].append(stats["revenue"])
             if len(ai["history"]) > 50:
@@ -178,7 +140,7 @@ def manual_scan():
         bonus_rate = ai["click_rate"] * 2.5
         if random.random() < bonus_rate:
             stats["clicks"] += random.randint(1, 3)
-        stats["revenue"] = round(stats["clicks"] * cpc, 2)
+            stats["pending_amount"] += int(cpc * 100)
         stats["last_update"] = datetime.now().isoformat()
     return jsonify(stats)
 
@@ -189,6 +151,7 @@ def get_stats():
         return jsonify({
             **stats,
             "ctr": ctr,
+            "public_key": PUBLIC_KEY,
             "ai_settings": {
                 "expensive_mode": ai["expensive_mode"],
                 "turbo_mode": ai["turbo_mode"],
@@ -202,13 +165,13 @@ def command():
     action = data.get("action", "").lower()
     if action == "toggle_expensive":
         ai["expensive_mode"] = not ai["expensive_mode"]
-        return jsonify({"expensive_mode": ai["expensive_mode"], "message": "💎 Expensive mode toggled!"})
+        return jsonify({"expensive_mode": ai["expensive_mode"], "message": "💎 Expensive toggled!"})
     if action == "toggle_turbo":
         ai["turbo_mode"] = not ai["turbo_mode"]
-        return jsonify({"turbo_mode": ai["turbo_mode"], "message": "🚀 Turbo mode toggled!"})
+        return jsonify({"turbo_mode": ai["turbo_mode"], "message": "🚀 Turbo toggled!"})
     if action == "toggle_stealth":
         ai["stealth_mode"] = not ai["stealth_mode"]
-        return jsonify({"stealth_mode": ai["stealth_mode"], "message": "🥷 Stealth mode toggled!"})
+        return jsonify({"stealth_mode": ai["stealth_mode"], "message": "🥷 Stealth toggled!"})
     if action == "set_click_rate":
         try:
             v = float(data.get("value", ai["click_rate"]))
@@ -222,7 +185,7 @@ def command():
         return jsonify({"revenue": stats["revenue"], "message": "💰 Boost +$10!"})
     if action == "reset":
         with lock:
-            stats.update({"imps": 0, "clicks": 0, "revenue": 0.0})
+            stats.update({"imps": 0, "clicks": 0, "revenue": 0.0, "pending_amount": 0})
         return jsonify({"message": "🔄 Stats reset!", **stats})
     return jsonify({"error": "Unknown command"}), 400
 
