@@ -1,0 +1,15 @@
+ad-mine/
+├─ nginx/
+│  ├─ Dockerfile
+│  ├─ nginx.conf
+│  └─ conf.d/
+│     ├─ default.conf
+├─ ai-clicker/
+│  ├─ Dockerfile
+│  ├─ requirements.txt
+│  └─ clicker.py
+├─ web/
+│  ├─ index.html
+│  ├─ 404.html
+│  └─ 50x.html
+└─ render.yaml
