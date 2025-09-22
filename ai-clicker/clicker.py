@@ -186,33 +186,23 @@ def links_api():
 
     links = load_links()
     new_id = max([l["id"] for l in links], default=0) + 1
-    new = {
-        "id": new_id,
+    new_link = {
+        "id":      new_id,
         "network": data["network"],
-        "url": data["url"],
-        "weight": 1.0
+        "url":     data["url"],
+        "weight":  1.0
     }
-    links.append(new)
+    links.append(new_link)
     save_links(links)
-    logging.info(f"Dodano link: {new}")
-    return jsonify(new), 201
+    logging.info(f"Dodano link: {new_link}")
+    return jsonify(new_link), 201
 
 # ─── API: Statystyki ─────────────────────────────────────────────────────────
-
-@app.route("/links", methods=["GET","POST"])
-def links_api():
-    if request.method == "GET":
-        return jsonify(load_links())
-    data = request.get_json()
-    if not data or "network" not in data or "url" not in 
- 
-    return jsonify({"error":"network i url wymagane"}), 400
-
-# ─── API: Komendy AI ─────────────────────────────────────────────────────────
-@app.route("/links", methods=["GET", "POST"])
-def links_api():
-    if request.method == "GET":
-        return jsonify(load_links())
+@app.route("/stats")
+def stats_api():
+    with lock:
+        ctr = round(stats["clicks"] / max(stats["imps"], 1) * 100, 2)
+        return jsonify({**stats, "ctr": ctr})
 
     data = request.get_json()
     # Poprawiony warunek — całość jednej linii z dwukropkiem na końcu
