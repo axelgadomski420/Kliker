@@ -1,67 +1,141 @@
 import os
 import time
 import random
-import requests
 from threading import Thread
-from flask import Flask, request, jsonify
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-# Stats
-stats = {"imps": 0, "clicks": 0}
+# Statystyki
 stats = {"imps": 0, "clicks": 0, "revenue": 0.0}
-stats["revenue"] = round(stats["clicks"] * float(os.getenv('CPC', '0.05')), 2)
 
-def ai_face_loop():
-    """Headless browsing co 10 sekund."""
-    chrome_opts = Options()
-    chrome_opts.add_argument("--headless")
-    chrome_opts.add_argument("--no-sandbox")
-    chrome_opts.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_opts)
-    url = os.getenv('TARGET_URL')  # np. strona z reklamą
-
+def auto_scan_loop():
+    """Automatycznie generuje odsłony i kliknięcia co 5 sekund."""
     while True:
-        try:
-            driver.get(url)
-            stats["imps"] += 1
-            # kliknij reklamę jeżeli widoczna
-            ads = driver.find_elements("css selector", ".ad-button")
-            if ads and random.random() < float(os.getenv('CLICK_RATE', '0.20')):
-                ads[0].click()
-                stats["clicks"] += 1
-        except Exception:
-            pass
-        time.sleep(10)
+        stats["imps"] += 1
+        if random.random() < float(os.getenv('CLICK_RATE', '0.20')):
+            stats["clicks"] += 1
+        stats["revenue"] = round(stats["clicks"] * float(os.getenv('CPC', '0.05')), 2)
+        time.sleep(5)
 
-@app.route("/stats")
-def get_stats():
-    return jsonify(stats)
-
-<!DOCTYPE html>
-<html>
-<head><title>Ad Mining Dashboard</title></head>
-<body style="font-family:Arial;margin:20px;">
+@app.route('/')
+def dashboard():
+    # Zwraca prosty HTML dashboard z kartami i przyciskiem (ładny CSS można dodać statycznie lub inline)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ad Mining Dashboard</title>
+<style>
+body {{
+  font-family: Arial,sans-serif;
+  background: #f0f2f5;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}}
+h1 {{
+  margin-bottom: 20px;
+  color: #333;
+}}
+.stats {{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 30px;
+}}
+.card {{
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}}
+.card h2 {{
+  margin: 0 0 10px;
+  font-size: 2.2em;
+  color: #007bff;
+}}
+.card p {{
+  margin: 0;
+  color: #555;
+  font-size: 0.9em;
+}}
+button {{
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  background: #28a745;
+  color: #fff;
+  font-size: 1em;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: background 0.2s;
+}}
+button:hover {{
+  background: #218838;
+}}
+#msg {{
+  margin-top: 15px;
+  color: #28a745;
+  font-weight: bold;
+}}
+</style>
+</head>
+<body>
 <h1>Ad Mining Platform</h1>
-<p>Impressions: {stats['imps']}</p>
-<p>Clicks: {stats['clicks']}</p>
-<button onclick="fetch('/scan',{{method:'POST'}}).then(()=>location.reload())">
-  Magnes na reklamy
-</button>
+
+<div class="stats">
+  <div class="card"><h2 id="imps">{stats['imps']}</h2><p>Impressions</p></div>
+  <div class="card"><h2 id="clicks">{stats['clicks']}</h2><p>Clicks</p></div>
+  <div class="card"><h2 id="ctr">{(100 * stats['clicks']/max(stats['imps'],1)):.2f}%</h2><p>CTR</p></div>
+  <div class="card"><h2>${stats['revenue']:.2f}</h2><p>Revenue</p></div>
+</div>
+
+<button onclick="manualScan()">Magnes na reklamy</button>
+<div id="msg"></div>
+
+<script>
+async function fetchStats() {{
+  try {{
+    const res = await fetch('/stats');
+    const data = await res.json();
+    document.getElementById('imps').innerText = data.imps;
+    document.getElementById('clicks').innerText = data.clicks;
+    document.getElementById('ctr').innerText = ((data.clicks/data.imps||0)*100).toFixed(2) + '%';
+    document.getElementById('revenue').innerText = data.revenue.toFixed(2);
+  }} catch(e) {{
+    console.error('Failed to fetch stats:', e);
+  }}
+}}
+
+async function manualScan() {{
+  try {{
+    await fetch('/scan', {{ method: 'POST' }});
+    document.getElementById('msg').innerText = 'Magnes uruchomiony!';
+    setTimeout(() => document.getElementById('msg').innerText = '', 3000);
+    fetchStats();
+  }} catch(e) {{
+    console.error('Manual scan failed:', e);
+  }}
+}}
+
+setInterval(fetchStats, 5000);
+fetchStats();
+</script>
 </body>
-</html>
-"""
+</html>"""
 
 @app.route('/scan', methods=['GET', 'POST'])
 def scan():
-    # Ręczny trigger, nadal dostępny
     stats["imps"] += 1
     if random.random() < float(os.getenv('CLICK_RATE', '0.20')):
         stats["clicks"] += 1
+    stats["revenue"] = round(stats["clicks"] * float(os.getenv('CPC', '0.05')), 2)
     return jsonify(stats)
 
 @app.route('/stats')
@@ -70,6 +144,5 @@ def get_stats():
 
 if __name__ == '__main__':
     Thread(target=auto_scan_loop, daemon=True).start()
-    Thread(target=ai_face_loop, daemon=True).start()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
