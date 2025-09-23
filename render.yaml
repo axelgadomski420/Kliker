@@ -3,7 +3,7 @@ services:
   - type: web
     name: ad-mine-nginx
     runtime: docker
-    dockerfilePath: ./nginx/Dockerfile  # Ścieżka względna od korzenia repozytorium
+    dockerfilePath: ./nginx/Dockerfile
     plan: starter
     autoDeploy: true
     envVars:
@@ -12,15 +12,16 @@ services:
       - key: CLICK_RATE
         value: "0.20"
       - key: STRIPE_SECRET
-        value: sk_test_…  # Upewnij się, że klucze są poprawne!
+        value: ${STRIPE_SECRET}  # Użyj zmiennych środowiskowych z Render Secrets
       - key: STRIPE_PUBLIC
-        value: pk_test_…
+        value: ${STRIPE_PUBLIC}
       - key: HUG_TOKEN
-        value: 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
+        value: ${HUG_TOKEN}
       - key: VPN_CONFIG_PATH
         value: /vpnbook/PL134.ovpn
       - key: NGINX_URL
-        value: https://<your-service>.onrender.com  # Zastąp <your-service> rzeczywistą nazwą!
+        sync: false  # Nie synchronizuj automatycznie - ustaw ręcznie w Dashboard
+        value: https://ad-mine-nginx.onrender.com
 
   # Worker z Selenium (klikacz)
   - type: worker
@@ -33,28 +34,37 @@ services:
       - key: CLICK_RATE
         value: "0.20"
       - key: NGINX_URL
-        value: https://<your-service>.onrender.com
+        value: https://ad-mine-nginx.onrender.com
       - key: HUG_TOKEN
-        value: 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
-      - key: DISPLAY  # Wymagane dla Selenium w Dockerze
+        value: ${HUG_TOKEN}
+      - key: DISPLAY
         value: ":99"
-      - key: CHROME_BIN  # Ścieżka do Chrome w kontenerze
+      - key: CHROME_BIN
         value: /usr/bin/google-chrome
-    # Opcje skalowania (opcjonalnie)
+      - key: SCREEN_WIDTH
+        value: "1920"
+      - key: SCREEN_HEIGHT
+        value: "1080"
+      - key: SCREEN_DEPTH
+        value: "24"
     numInstances: 1
-    region: frankfurt  # Wybierz region bliżej Polski dla lepszej wydajności
+    region: frankfurt
 
-  # Opcjonalny serwis API (Flask)
+  # Serwis API (Flask)
   - type: web
     name: ad-mine-api
     runtime: docker
-    dockerfilePath: ./api/Dockerfile  # Jeśli masz oddzielny serwis API
+    dockerfilePath: ./api/Dockerfile
     plan: starter
     autoDeploy: true
     envVars:
       - key: STRIPE_SECRET
-        value: sk_test_…
+        value: ${STRIPE_SECRET}
       - key: STRIPE_PUBLIC
-        value: pk_test_…
+        value: ${STRIPE_PUBLIC}
       - key: HUG_TOKEN
-        value: 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
+        value: ${HUG_TOKEN}
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: "10000"  # Domyślny port dla Render
