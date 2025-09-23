@@ -196,7 +196,7 @@ PROXIES = [
 ]
 
 proxy_health_cache = {}
-proxy_fail_counts = {proxy: 0 for proxy in PROXIES}
+proxy_fail_counts = {}
 
 def load_links():
     try:
@@ -218,23 +218,36 @@ def generate_unique_id(num_bytes=8):
 def proxy_health_check(proxy_url):
     try:
         headers = {"User-Agent": random.choice(user_agents_list)}
-        resp = requests.get("https://httpbin.org/ip", proxies={"http": proxy_url, "https": proxy_url}, headers=headers, timeout=3)
-        return resp.status_code == 200
-    except:
+        # Zamiana sprawdzaniego endpointu na bardziej stabilny i wydłużony timeout
+        resp = requests.get("https://www.google.com", proxies={"http": proxy_url, "https": proxy_url}, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            return True
+        else:
+            logging.warning(f"Proxy {proxy_url} zwróciło status {resp.status_code}")
+            return False
+    except Exception as e:
+        logging.warning(f"Błąd proxy {proxy_url}: {e}")
         return False
 
 def get_next_proxy():
     with proxy_lock:
         alive_proxies = []
+        # Inicjalizacja liczników, jeśli puste
+        for p in PROXIES:
+            if p not in proxy_fail_counts:
+                proxy_fail_counts[p] = 0
+
         for proxy in PROXIES[:]:
             if proxy in proxy_health_cache:
                 if proxy_health_cache[proxy]:
                     alive_proxies.append(proxy)
                 else:
                     proxy_fail_counts[proxy] += 1
-                    if proxy_fail_counts[proxy] >= 3:
-                        logging.warning(f"Removing proxy {proxy} due to repeated failures")
+                    if proxy_fail_counts[proxy] >= 10:  # zwiększony limit prób
+                        logging.warning(f"Usuwanie proxy {proxy} po {proxy_fail_counts[proxy]} nieudanych próbach")
                         PROXIES.remove(proxy)
+                        proxy_fail_counts.pop(proxy, None)
+                        proxy_health_cache.pop(proxy, None)
             else:
                 if proxy_health_check(proxy):
                     proxy_health_cache[proxy] = True
@@ -243,7 +256,7 @@ def get_next_proxy():
                     proxy_health_cache[proxy] = False
                     proxy_fail_counts[proxy] = proxy_fail_counts.get(proxy, 0) + 1
         if not alive_proxies:
-            logging.error("No working proxies available")
+            logging.error("Brak dostępnych proxy")
             return None
         chosen = random.choice(alive_proxies)
         return {"http": chosen, "https": chosen}
@@ -252,21 +265,38 @@ def fetch_cpc():
     proxy = get_next_proxy()
     headers = {"User-Agent": random.choice(user_agents_list)}
     try:
-        # Simulated CPC fetch (replace with real endpoint if available)
+        # Tutaj możesz podmienić na realne API pobierania CPC
+        # Przykład fetchu z endpointa (zakomentowany):
+        # if proxy is not None:
+        #     resp = requests.get("https://twoja-api-cpc.com/fetch", proxies=proxy, headers=headers, timeout=5)
+        #     if resp.status_code == 200:
+        #         data = resp.json()
+        #         return float(data.get("cpc", 0.1))
+        #     else:
+        #         logging.warning(f"CPC fetch failed with status {resp.status_code}")
+        #         return 0.1
+        # else:
+        #     logging.warning("No proxy available for CPC fetch")
+        #     return 0.1
+
+        # Symulacja losowego CPC, moduluje przychód, można rozszerzyć
         return round(0.05 + random.random() * 0.15, 4)
     except Exception as e:
-        logging.warning(f"CPC fetch failed: {e}")
+        logging.warning(f"Pobieranie CPC nie powiodło się: {e}")
         return 0.1
 
 def smart_delay(base):
+    # Losowa modyfikacja czasu opóźnienia, by działać bardziej naturalnie
     return base * random.uniform(0.8, 1.2)
 
 def check_achievements(stats, bot):
     new_achievements = []
-    for milestone in bot["milestones"][:]:
+    # Sprawdzanie kamieni milowych przychodu
+    for milestone in bot["milestones"][:]:  # kopia listy milestonów, by można usuwać
         if stats["revenue"] >= milestone:
             new_achievements.append(f"💰 Milestone reached: ${milestone}")
             bot["milestones"].remove(milestone)
+    # Dodatkowe osiągnięcia przy kliknięciach i wyświetleniach
     if stats["clicks"] >= 100 and "Century Club" not in bot["achievements"]:
         new_achievements.append("🎯 Century Club - 100 clicks")
         bot["achievements"].append("Century Club")
