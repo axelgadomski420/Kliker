@@ -6,6 +6,7 @@ import threading
 import requests
 import stripe
 import logging
+import threading
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -45,6 +46,19 @@ ai_cfg = {
     "smart_timing": True,
 }
 
+
+def load_links():
+    try:
+        with open(LINKS_FILE) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+def save_links(links):
+    with open(LINKS_FILE, "w") as f:
+        json.dump(links, f, indent=2)
+
+
 lock = threading.Lock()
 LINKS_FILE = "links.json"
 
@@ -59,36 +73,34 @@ PROXIES = [
     "http://178.128.202.202:3128",
     "http://206.189.145.44:3128",
     "http://46.4.96.43:3128"
+    "http://138.201.223.250:8080",
+    "http://51.158.186.141:8811",
+    "http://178.62.193.19:3128",
+    "http://165.22.81.245:8080",
+    "http://159.65.69.186:8888",
 ]
 
-
-def load_links():
-    try:
-        with open(LINKS_FILE) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
-
-def save_links(links):
-    with open(LINKS_FILE, "w") as f:
-        json.dump(links, f, indent=2)
+# Lock dla bezpieczeństwa modyfikacji proxy listy w wielowątkowości
+proxy_lock = threading.Lock()
 
 def get_proxy():
     if not ai_cfg["proxy_rotation"]:
         return None
     global PROXIES
-    while PROXIES:
-        proxy_url = random.choice(PROXIES)
-        proxy = {"http": proxy_url, "https": proxy_url}
-        try:
-            resp = requests.get("https://httpbin.org/ip", proxies=proxy, timeout=3)
-            if resp.status_code == 200:
-                return proxy
-            else:
+    with proxy_lock:
+        while PROXIES:
+            proxy_url = random.choice(PROXIES)
+            proxy = {"http": proxy_url, "https": proxy_url}
+            try:
+                resp = requests.get("https://httpbin.org/ip", proxies=proxy, timeout=3)
+                if resp.status_code == 200:
+                    return proxy
+                else:
+                    PROXIES.remove(proxy_url)
+            except Exception:
                 PROXIES.remove(proxy_url)
-        except Exception:
-            PROXIES.remove(proxy_url)
-    return None
+        # Gdy brak proxy, zwróć None
+        return None
 
     # Testuj proxy na żywo i usuwaj martwe IP z listy
     global PROXIES
