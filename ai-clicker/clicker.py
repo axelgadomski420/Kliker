@@ -21,7 +21,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 
 PORT = int(os.getenv("PORT", "5000"))
 
-# Global stats
 stats = {
     "imps": 0,
     "clicks": 0,
@@ -30,7 +29,6 @@ stats = {
     "last_update": datetime.now().isoformat()
 }
 
-# Bots configuration
 ai_bots_cfg = {
     "Bot1": {
         "name": "HelperBot",
@@ -44,8 +42,8 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "normal",
         "interval": 3.0,
-        "clicking_active": True,   # start active as per request
-        "watching_active": True,   # start active as per request
+        "clicking_active": True,
+        "watching_active": True,
         "milestones": [10, 20, 50, 100],
     },
     "Bot2": {
@@ -106,7 +104,7 @@ LINKS_FILE = "links.json"
 PROXIES = [
     "http://fmjwfjea:2dg9ugb5x8gi@142.111.48.253:7030/",
     "http://fmjwfjea:2dg9ugb5x8gi@198.23.239.134:6540/",
-    "http://fmjwfjea:2dg9ugb5x8gi@45.38.97.6014/",
+    "http://fmjwfjea:2dg9ugb5x8gi@45.38.97:6014/",
     "http://fmjwfjea:2dg9ugb5x8gi@107.172.27:6543/",
     "http://fmjwfjea:2dg9ugb5x8gi@64.137.74:6641/",
     "http://fmjwfjea:2dg9ugb5x8gi@154.203.43:5536/",
@@ -116,7 +114,7 @@ PROXIES = [
     "http://fmjwfjea:2dg9ugb5x8gi@142.128:6593/",
 ]
 
-proxy_fail_counts = {p:0 for p in PROXIES}
+proxy_fail_counts = {p: 0 for p in PROXIES}
 
 DEFAULT_LINKS = [
     {"id": 1, "network": "Zeydoo A", "url": "https://ldl1.com/link?z=9917741&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
@@ -155,20 +153,20 @@ def get_proxy():
         if not PROXIES:
             logging.warning("No proxies available. Using no proxy.")
             return None
-        proxy = random.choice(PROXIES)
-        return {"http": proxy, "https": proxy}
+        proxy_url = random.choice(PROXIES)
+        return {"http": proxy_url, "https": proxy_url}
 
 def report_proxy_failure(proxy_url):
     with proxy_lock:
         proxy_fail_counts[proxy_url] = proxy_fail_counts.get(proxy_url, 0) + 1
         if proxy_fail_counts[proxy_url] >= 3:
-            logging.warning(f"Removing proxy due to repeated failures: {proxy_url}")
+            logging.warning(f"Removing proxy {proxy_url} due to repeated failures.")
             PROXIES.remove(proxy_url)
             proxy_fail_counts.pop(proxy_url, None)
 
 def fetch_cpc():
     proxy = get_proxy()
-    proxy_url = proxy["http"] if proxy else None
+    proxy_url = proxy.get("http") if proxy else None
     try:
         headers = {"User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         resp = requests.get("https://ipv4.webshare.io/", proxies=proxy, headers=headers, timeout=5)
@@ -250,39 +248,65 @@ def ai_bot_worker(bot_name):
     logging.info(f"{bot['name']} started.")
     global supermode_active, supermode_end_time, mega_scan_active, mega_scan_end_time
     while True:
+        # Handle supermode timeout
         with supermode_lock:
             if supermode_active and time.time() > supermode_end_time:
                 logging.info("Supermode expired. Disabling.")
                 stop_supermode()
+        # Handle mega scan timeout
         with mega_scan_lock:
             if mega_scan_active and time.time() > mega_scan_end_time:
                 logging.info("Mega scan expired. Disabling.")
                 mega_scan_active = False
             mega_effect = mega_scan_active
-        cpc = fetch_cpc()
-        mult = smart_timing_multiplier()
+
+        # Load links each cycle for dynamic update
+        links = load_links()
+        if not links:
+            time.sleep(5)
+            continue
+
+        # Choose random active link and fill parameters
+        chosen_link = random.choice(links)["url"]
+        filled_link = chosen_link.replace("{SOURCE_ID}", "source123").replace("{CLICK_ID}", str(random.randint(1000000, 9999999)))
+
+        try:
+            proxy = get_proxy()
+            headers = {"User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            resp = requests.get(filled_link, proxies=proxy, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                with lock:
+                    stats["clicks"] += 1
+                    cpc = fetch_cpc()
+                    stats["revenue"] += cpc  # Realistic revenue increment per CPC
+                    stats["imps"] += 1 if not mega_effect else 4  # count impression more if mega scan active
+                    stats["last_update"] = datetime.now().isoformat()
+            else:
+                logging.warning(f"Click to {filled_link} returned status {resp.status_code}")
+        except Exception as e:
+            logging.error(f"Problem clicking {filled_link}: {e}")
+
+        # If mega scan active, boost revenue and impressions a little
         with lock:
-            increment = 1 if random.random() < bot["click_rate"] * mult else 0
             if mega_effect:
-                increment = max(increment,1)
                 stats["imps"] += 3
                 stats["revenue"] += 0.1
-            stats["imps"] += 1
-            stats["clicks"] += increment
-            stats["revenue"] += increment * cpc
+
+        # Regular bot state behavior and random toggles as before
+        with lock:
             if bot["expensive_mode"]:
                 stats["revenue"] += 0.01
             if bot["turbo_mode"]:
                 stats["imps"] += 1
             if bot["stealth_mode"] and random.random() < 0.1:
                 stats["clicks"] = max(0, stats["clicks"] - 1)
-            stats["last_update"] = datetime.now().isoformat()
+
             bot["history"].append(stats["revenue"])
-            if len(bot["history"]) > 50:
-                bot["history"].pop(0)
-            new_achievements = check_achievements(stats, bot)
-            for ach in new_achievements:
-                logging.info(f"{bot['name']} achieved: {ach}")
+            if len(bot["history"]) > 50: bot["history"].pop(0)
+            new_ach = check_achievements(stats, bot)
+            for a in new_ach:
+                logging.info(f"{bot['name']} achievement: {a}")
+
             r = random.random()
             if r < 0.03:
                 bot["expensive_mode"] = not bot["expensive_mode"]
@@ -295,14 +319,16 @@ def ai_bot_worker(bot_name):
                 logging.info(f"{bot['name']} toggled stealth_mode to {bot['stealth_mode']}")
             elif r < 0.12:
                 stats["revenue"] += 5.0
-                logging.info(f"{bot['name']} performed a revenue boost +$5")
+                logging.info(f"{bot['name']} performed revenue boost +$5")
+
+        # Sleep according to bot interval and some randomness for natural behavior
         time.sleep(bot.get("interval", 3.0) * random.uniform(0.8, 1.2))
 
 @app.route("/stats")
 def stats_api():
     with lock:
         ctr = (stats["clicks"] / stats["imps"] * 100) if stats["imps"] > 0 else 0
-        return jsonify({**stats, "ctr": round(ctr, 2)})  # Poprawione: słownik z "ctr"
+        return jsonify({**stats, "ctr": round(ctr, 2)})
 
 @app.route("/links", methods=["GET", "POST"])
 def links_api():
@@ -311,10 +337,8 @@ def links_api():
 
     data = request.get_json()
     links = load_links()
-
-    # Poprawiony warunek: dodane "data" po "url" not in
-    if not data or "network" not in data or "url" not in data:
-        return jsonify(links)  # Zwraca listę linków, jeśli dane są niepoprawne
+    if not data or "network" not in data or "url" not in 
+        return jsonify(links)
 
     new_id = max((l["id"] for l in links), default=0) + 1
     new_link = {
@@ -332,102 +356,77 @@ def links_api():
 def command_api():
     data = request.get_json() or {}
     action = data.get("action", "").lower()
-
-    if action == "przelacz_drogi_tryb":
-        with lock:
+    with lock:
+        if action == "przelacz_drogi_tryb":
             for bot in ai_bots_cfg.values():
                 bot["expensive_mode"] = not bot["expensive_mode"]
-        return jsonify({"message":"Toggled expensive mode for all bots."})
-
-    if action == "przelacz_turbo":
-        with lock:
+            return jsonify({"message": "Toggled expensive mode for all bots"})
+        elif action == "przelacz_turbo":
             for bot in ai_bots_cfg.values():
                 bot["turbo_mode"] = not bot["turbo_mode"]
-        return jsonify({"message":"Toggled turbo mode for all bots."})
-
-    if action == "przelacz_ukryty":
-        with lock:
+            return jsonify({"message": "Toggled turbo mode for all bots"})
+        elif action == "przelacz_ukryty":
             for bot in ai_bots_cfg.values():
                 bot["stealth_mode"] = not bot["stealth_mode"]
-        return jsonify({"message":"Toggled stealth mode for all bots."})
-
-    if action == "zwieksz_przychod":
-        with lock:
+            return jsonify({"message": "Toggled stealth mode for all bots"})
+        elif action == "zwieksz_przychod":
             stats["revenue"] += 10.0
-        return jsonify({"message":"Increased revenue by 10", "revenue": stats["revenue"]})
-
-    if action == "resetuj_statystyki":
-        with lock:
-            stats.update(imps=0, clicks=0, revenue=0.0, pending=0)
+            return jsonify({"message": "Increased revenue by 10", "revenue": stats["revenue"]})
+        elif action == "resetuj_statystyki":
+            stats.update({"imps": 0, "clicks": 0, "revenue": 0.0, "pending": 0})
             for bot in ai_bots_cfg.values():
                 bot["history"].clear()
                 bot["achievements"].clear()
-        return jsonify({"message":"Reset statistics and bots.", **stats})
-
-    if action == "ustaw_click_rate":
-        val = data.get("value")
-        if val is None:
-            return jsonify({"error":"Missing value for click_rate."}), 400
-        try:
-            val = float(val)
-        except:
-            return jsonify({"error":"Invalid value for click_rate."}), 400
-        with lock:
+            return jsonify({"message": "Reset statistics and bots", **stats})
+        elif action == "ustaw_click_rate":
+            try:
+                v = float(data.get("value", 1.0))
+            except:
+                return jsonify({"error": "Invalid click rate value"}), 400
             for bot in ai_bots_cfg.values():
-                bot["click_rate"] = max(bot["min_rate"], min(val, bot["max_rate"]))
-        return jsonify({"message":f"Set click_rate to {val} for all bots."})
-
-    if action == "start_klikanie":
-        with lock:
+                bot["click_rate"] = max(bot["min_rate"], min(v, bot["max_rate"]))
+            return jsonify({"message": f"Set click rate to {v} seconds for all bots"})
+        elif action == "start_klikanie":
             for bot in ai_bots_cfg.values():
                 bot["clicking_active"] = True
-        return jsonify({"message":"Started clicking for all bots."})
-
-    if action == "stop_klikanie":
-        with lock:
+            return jsonify({"message": "Started clicking for all bots"})
+        elif action == "stop_klikanie":
             for bot in ai_bots_cfg.values():
                 bot["clicking_active"] = False
-        return jsonify({"message":"Stopped clicking for all bots."})
-
-    if action == "start_oglądanie":
-        with lock:
+            return jsonify({"message": "Stopped clicking for all bots"})
+        elif action == "start_oglądanie":
             for bot in ai_bots_cfg.values():
                 bot["watching_active"] = True
-        return jsonify({"message":"Started watching for all bots."})
-
-    if action == "stop_oglądanie":
-        with lock:
+            return jsonify({"message": "Started watching for all bots"})
+        elif action == "stop_oglądanie":
             for bot in ai_bots_cfg.values():
                 bot["watching_active"] = False
-        return jsonify({"message":"Stopped watching for all bots."})
-
-    if action == "aktywuj_supermode":
-        start_supermode(6000)
-        return jsonify({"message":"Supermode activated for 6000 seconds."})
-
-    if action == "dezaktywuj_supermode":
-        stop_supermode()
-        return jsonify({"message":"Supermode deactivated."})
-
-    if action == "start_mega_scan":
-        start_mega_scan(3000)
-        return jsonify({"message":"Mega scan activated for 3000 seconds."})
-
-    return jsonify({"error":"Unknown command."}), 400
+            return jsonify({"message": "Stopped watching for all bots"})
+        elif action == "aktywuj_supermode":
+            start_supermode(6000)
+            return jsonify({"message": "Supermode activated for 6000 seconds"})
+        elif action == "dezaktywuj_supermode":
+            stop_supermode()
+            return jsonify({"message": "Supermode deactivated"})
+        elif action == "start_mega_scan":
+            start_mega_scan(3000)
+            return jsonify({"message": "Mega scan activated for 3000 seconds"})
+        else:
+            return jsonify({"error": "Unknown command"}), 400
 
 @app.route("/huggingface_chat", methods=["POST"])
 def huggingface_chat():
     data = request.get_json()
-    message = data.get("message","")
+    message = data.get("message", "")
     if not message:
-        return jsonify({"error":"No message provided."}), 400
+        return jsonify({"error": "No message provided"}), 400
 
     HUGGINGFACE_URL = "https://api-inference.huggingface.co/models/gpt2"
-    HUGGINGFACE_TOKEN = "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"  # Replace with your real Huggingface key
+    HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_API_KEY", "")
     headers = {"Authorization": f"Bearer {HUGGINGFACE_TOKEN}"}
     resp = requests.post(HUGGINGFACE_URL, headers=headers, json={"inputs": message, "options": {"wait_for_model": True}})
     if resp.status_code != 200:
-        return jsonify({"error":"Huggingface API error","details":resp.text}), 500
+        return jsonify({"error": "Huggingface API error", "details": resp.text}), 500
     data_resp = resp.json()
     model_resp = ""
     if isinstance(data_resp, list) and data_resp:
@@ -447,7 +446,7 @@ def huggingface_chat():
             if m:
                 val = float(m.group(1))
                 for bot in ai_bots_cfg.values():
-                    bot["click_rate"] = max(bot["min_rate"], min(val, bot["max_rate"]))
+                    bot["click_rate"] = max(bot['min_rate'], min(val, bot['max_rate']))
                 command_resp = f"Set click rate to {val} seconds."
             else:
                 command_resp = "Could not parse click rate value."
@@ -475,3 +474,4 @@ if __name__ == "__main__":
         t.start()
         logging.info(f"Started bot {bot_name}")
     app.run(host="0.0.0.0", port=PORT)
+
