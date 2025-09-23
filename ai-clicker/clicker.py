@@ -201,9 +201,11 @@ def ai_scan_worker(worker_id):
 def links_api():
     if request.method == "GET":
         return jsonify(load_links())
+
     data = request.get_json()
     if not data or "network" not in data or "url" not in 
         return jsonify({"error": "network i url wymagane"}), 400
+
     links = load_links()
     new_id = max([l["id"] for l in links], default=0) + 1
     new_link = {
