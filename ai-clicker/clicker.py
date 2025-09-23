@@ -230,7 +230,6 @@ def links_api():
     logging.info(f"Dodano link: {new_link}")
     return jsonify(new_link), 201
 
-
 @app.route("/command", methods=["POST"])
 def command_api():
     data = request.get_json() or {}
