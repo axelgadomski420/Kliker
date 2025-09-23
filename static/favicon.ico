@@ -1,0 +1,8 @@
+# Zapisz Base64 do favicon.ico.b64
+echo "AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8AzP/MAPz/8wD6/+YAAP/jsQD4/5oA+P+aAPj/mgD4/5oA+P+aAPj/mgD4/5oA+P+aAPj/mgD4/5oA+P+aAPj/mgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" > favicon.ico.b64
+
+# Dekoduj do pliku ICO
+base64 -d favicon.ico.b64 > favicon.ico
+
+# Przenieś do folderu static/
+mv favicon.ico static/favicon.ico
