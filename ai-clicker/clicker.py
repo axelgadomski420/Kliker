@@ -9,7 +9,6 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
-export no_proxy="localhost,127.0.0.1,.mycompany.local"
 
 load_dotenv()
 app = Flask(__name__)
@@ -21,7 +20,9 @@ PORT = int(os.getenv("PORT", "5000"))
 DEFAULT_CLICK_RATE = float(os.getenv("CLICK_RATE", "0.20"))
 
 stats = {
-    "imps": 0, "clicks": 0, "revenue": 0.0,
+    "imps": 0,
+    "clicks": 0,
+    "revenue": 0.0,
     "pending": 0,
     "last_update": datetime.now().isoformat()
 }
@@ -152,7 +153,6 @@ def ai_scan_worker(worker_id):
 
         time.sleep(ai_cfg["interval"] * random.uniform(0.8, 1.2))
 
-
 @app.route("/links", methods=["GET", "POST"])
 def links_api():
     if request.method == "GET":
@@ -251,7 +251,10 @@ def manual_scan():
 
 @app.route("/")
 def index():
-    return open("web/index.html").read()
+    try:
+        return open("web/index.html").read()
+    except FileNotFoundError:
+        return "<h1>AI Clicker Platform</h1><p>Index file missing</p>"
 
 if __name__ == "__main__":
     logging.info("🚀 Starting AI Clicker Engine...")
