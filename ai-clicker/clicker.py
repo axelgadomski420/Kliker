@@ -11,12 +11,13 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+# Inicjalizacja
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "sk_test_...")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 SOURCE_ID = os.getenv("SOURCE_ID", "SRC_000")
 PORT = int(os.getenv("PORT", "5000"))
 DEFAULT_CLICK_RATE = float(os.getenv("CLICK_RATE", "0.20"))
@@ -26,6 +27,7 @@ stats = {
     "pending": 0, "last_charge": None,
     "last_update": datetime.now().isoformat()
 }
+
 ai_cfg = {
     "click_rate": DEFAULT_CLICK_RATE,
     "interval": 3.0,
@@ -34,17 +36,19 @@ ai_cfg = {
     "stealth_mode": True,
     "min_rate": 0.05,
     "max_rate": 0.80,
-    "history": [], "achievements": [],
+    "history": [],
+    "achievements": [],
     "milestones": [10, 50, 100, 250, 500, 1000],
     "proxy_rotation": True,
     "smart_timing": True,
 }
+
 lock = threading.Lock()
 LINKS_FILE = "links.json"
 
+# Stabilne proxy
 PROXIES = [
     "http://139.59.59.240:8080",
-    "http://51.158.68.68:8811",
     "http://134.209.29.120:3128"
 ]
 
@@ -67,7 +71,7 @@ def get_proxy():
 
 def fetch_cpc():
     try:
-        headers = {"User-Agent": f"Mozilla/5.0 AppleWebKit/{random.randint(537, 539)}.36"}
+        headers = {"User-Agent": f"Mozilla/5.0 AppleWebKit/{random.randint(537,539)}.36"}
         requests.get("https://httpbin.org/get", proxies=get_proxy(), headers=headers, timeout=3)
         return round(0.05 + random.random()*0.15, 4)
     except Exception as e:
@@ -100,7 +104,7 @@ def check_achievements():
 
 def select_affiliate_link(links):
     total = sum(l.get("weight",1.0) for l in links)
-    r = random.uniform(0,total)
+    r = random.uniform(0, total)
     acc = 0
     for l in links:
         acc += l.get("weight",1.0)
@@ -118,11 +122,11 @@ def ai_scan_worker(worker_id):
             rate = ai_cfg["click_rate"] * mult
             if ai_cfg["expensive_mode"]: rate *= 2.0
             if ai_cfg["turbo_mode"]: rate *= 1.5
-            if ai_cfg["stealth_mode"]: rate *= random.uniform(0.8,1.2)
+            if ai_cfg["stealth_mode"]: rate *= random.uniform(0.8, 1.2)
 
-            if random.random() < min(rate,0.95):
+            if random.random() < min(rate, 0.95):
                 stats["clicks"] += 1
-                stats["pending"] += int(cpc*100)
+                stats["pending"] += int(cpc * 100)
 
                 links = load_links()
                 ln = select_affiliate_link(links)
@@ -133,7 +137,7 @@ def ai_scan_worker(worker_id):
                         payout = float(r.headers.get("X-Payout", cpc))
                     except:
                         payout = cpc
-                    ln["weight"] = ln.get("weight",1.0)*0.9 + payout*0.1
+                    ln["weight"] = ln.get("weight", 1.0) * 0.9 + payout * 0.1
                     save_links(links)
                     logging.info(f"Worker-{worker_id} clicked {ln['network']} payout={payout}")
 
@@ -146,10 +150,10 @@ def ai_scan_worker(worker_id):
                             confirm=True,
                             payment_method="pm_card_visa"
                         )
-                        stats["revenue"] += stats["pending"]/100.0
+                        stats["revenue"] += stats["pending"] / 100.0
                         stats["last_charge"] = {
                             "id": intent.id,
-                            "amount": intent.amount/100.0,
+                            "amount": intent.amount / 100.0,
                             "time": datetime.now().isoformat()
                         }
                         stats["pending"] = 0
@@ -172,7 +176,7 @@ def links_api():
         return jsonify(load_links())
 
     data = request.get_json()
-    if not data or "network" not in data or "url" not in 
+    if not data or "network" not in data or "url" not in data:
         return jsonify({"error": "network i url wymagane"}), 400
 
     links = load_links()
@@ -186,61 +190,6 @@ def links_api():
     links.append(new_link)
     save_links(links)
     logging.info(f"Dodano link: {new_link}")
-    return jsonify(new_link), 201
-
-
-    links = load_links()
-    new_id = max([l["id"] for l in links], default=0) + 1
-    new_link = {
-        "id": new_id,
-        "network": data["network"],
-        "url": data["url"],
-        "weight": 1.0
-    }
-    links.append(new_link)
-    save_links(links)
-    logging.info(f"Dodano link: {new_link}")
-    return jsonify(new_link), 201
-
-
-    links = load_links()
-    new_id = max([l["id"] for l in links], default=0) + 1
-    new_link = {
-        "id": new_id,
-        "network": data["network"],
-        "url": data["url"],
-        "weight": 1.0
-    }
-    links.append(new_link)
-    save_links(links)
-    logging.info(f"Dodano link: {new_link}")
-    return jsonify(new_link), 201
-
-    links = load_links()
-    new_id = max([l["id"] for l in links], default=0) + 1
-    new_link = {
-        "id": new_id,
-        "network": data["network"],
-        "url": data["url"],
-        "weight": 1.0
-    }
-    links.append(new_link)
-    save_links(links)
-    logging.info(f"Dodano link: {new_link}")
-    return jsonify(new_link), 201
-
-
-    links = load_links()
-    new_id = max([l["id"] for l in links], default=0) + 1
-    new_link = {
-        "id": new_id,
-        "network": data["network"],
-        "url": data["url"],
-        "weight": 1.0
-    }
-    links.append(new_link)
-    save_links(links)
-    logging.info(f"Added link: {new_link}")
     return jsonify(new_link), 201
 
 @app.route("/stats")
