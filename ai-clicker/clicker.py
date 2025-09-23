@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 app = Flask(__name__)
@@ -17,7 +18,6 @@ CORS(app)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 PORT = int(os.getenv("PORT", "5000"))
-DEFAULT_CLICK_RATE = float(os.getenv("CLICK_RATE", "0.20"))
 
 stats = {
     "imps": 0,
@@ -325,6 +325,72 @@ def command_api():
         else:
             return jsonify({"error": "Nieznana komenda"}), 400
 
+@app.route("/huggingface_chat", methods=["POST"])
+def huggingface_chat():
+    data = request.get_json()
+    message = data.get("message", "")
+    if not message:
+        return jsonify({"error": "Brak wiadomości"}), 400
+    
+    HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/gpt2"
+    HUGGINGFACE_API_KEY = "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"
+    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+    payload = {"inputs": message, "options": {"wait_for_model": True}}
+
+    response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=payload)
+    if response.status_code != 200:
+        return jsonify({"error": "Błąd Huggingface API", "details": response.text}), 500
+    outputs = response.json()
+
+    if isinstance(outputs, list) and len(outputs) > 0:
+        model_response = outputs[0].get("generated_text", "").strip()
+    else:
+        model_response = ""
+
+    response_lower = message.lower()
+    command_response = ""
+    with lock:
+        if "aktywuj supermode" in response_lower or "włącz supermode" in response_lower:
+            for bot in ai_bots_cfg.values():
+                bot["expensive_mode"] = True
+                bot["turbo_mode"] = True
+                bot["stealth_mode"] = True
+                bot["click_rate"] = 4.0
+                bot["clicking_active"] = True
+                bot["watching_active"] = True
+            command_response = "Supermode aktywowany."
+        elif "dezaktywuj supermode" in response_lower or "wyłącz supermode" in response_lower:
+            for bot in ai_bots_cfg.values():
+                bot["expensive_mode"] = False
+                bot["turbo_mode"] = False
+                bot["stealth_mode"] = False
+                bot["clicking_active"] = False
+                bot["watching_active"] = False
+            command_response = "Supermode dezaktywowany."
+        elif "ustaw click rate" in response_lower:
+            m = re.search(r"(\d+)", response_lower)
+            if m:
+                val = float(m.group(1))
+                for bot in ai_bots_cfg.values():
+                    bot["click_rate"] = max(bot.get("min_rate", 0.1), min(val, bot.get("max_rate", 10.0)))
+                command_response = f"Ustawiono click rate na {val} sekund."
+            else:
+                command_response = "Nie mogę rozpoznać wartości click rate."
+        else:
+            command_response = "Nie rozumiem polecenia."
+
+    return jsonify({
+        "model_response": model_response,
+        "command_response": command_response
+    })
+
+@app.route("/")
+def index():
+    try:
+        return open("web/index.html").read()
+    except FileNotFoundError:
+        return "<h1>AI Clicker Platform</h1><p>Index file missing</p>"
+
 @app.route("/scan", methods=["POST"])
 def manual_scan():
     with lock:
@@ -333,13 +399,6 @@ def manual_scan():
         stats["revenue"] += 0.1
         stats["last_update"] = datetime.now().isoformat()
     return jsonify(stats)
-
-@app.route("/")
-def index():
-    try:
-        return open("web/index.html").read()
-    except FileNotFoundError:
-        return "<h1>AI Clicker Platform</h1><p>Index file missing</p>"
 
 if __name__ == "__main__":
     logging.info("🚀 Starting AI Clicker Engine with 4 AI bots...")
