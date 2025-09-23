@@ -7,22 +7,50 @@ import requests
 import logging
 import secrets
 import re
+import numpy as np
+import hashlib
 from datetime import datetime
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
+from flask_sock import Sock
+from dotenv import load_dotenv
+from functools import wraps
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, TimeoutException
-from dotenv import load_dotenv
-from functools import wraps
-import numpy as np
-import speech_recognition as sr
-from flask_sock import Sock
-import hashlib
+from webdriver_manager.chrome import ChromeDriverManager
+
+# Inicjalizacja Flask
+app = Flask(__name__)
+CORS(app)
+sock = Sock(app)
+load_dotenv()
+
+def get_driver():
+    """Zwraca skonfigurowany driver Chrome w trybie headless dla Render.com"""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
+
+# Przykład użycia:
+# driver = get_driver()
+# try:
+#     driver.get("https://example.com")
+#     print(driver.title)
+# finally:
+#     driver.quit()
 
 load_dotenv()
 
