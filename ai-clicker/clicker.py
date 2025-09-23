@@ -212,7 +212,7 @@ def links_api():
         return jsonify(load_links())
 
     data = request.get_json()
-    if not data or "network" not in data or "url" not in 
+if not data or "network" not in data or "url" not in 
     return jsonify({"error": "network i url wymagane"}), 400
 
     links = load_links()
