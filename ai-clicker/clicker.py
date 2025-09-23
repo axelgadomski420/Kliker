@@ -25,40 +25,14 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
-# Inicjalizacja Flask
+# Inicjalizacja Flask - JEDNOKROTNA
 app = Flask(__name__)
 CORS(app)
 sock = Sock(app)
 load_dotenv()
-
-def get_driver():
-    """Zwraca skonfigurowany driver Chrome w trybie headless dla Render.com"""
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
-
-# Przykład użycia:
-# driver = get_driver()
-# try:
-#     driver.get("https://example.com")
-#     print(driver.title)
-# finally:
-#     driver.quit()
-
-load_dotenv()
-
-app = Flask(__name__)
-CORS(app)
-sock = Sock(app)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
 lock = threading.Lock()
 proxy_lock = threading.Lock()
 
@@ -167,21 +141,6 @@ LINKS_DEFAULT = [
     {"id": 14, "network": "Ksjsb", "url": "https://92orb.com/link?z=9917785&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
 ]
 
-def load_links():
-    try:
-        with open(LINKS_FILE, "r") as f:
-            links = json.load(f)
-            if not links:
-                raise Exception("Empty links file")
-            return links
-    except Exception:
-        return LINKS_DEFAULT.copy()
-
-def save_links(links):
-    with open(LINKS_FILE, "w") as f:
-        json.dump(links, f, indent=2)
-
-
 PROXIES = [
     # Nowa lista proxy bez uwierzytelnienia
     "http://78.9.234.55:8080",
@@ -250,7 +209,8 @@ def load_links():
             if not links:
                 raise Exception("Empty links file")
             return links
-    except Exception:
+    except Exception as e:
+        logging.warning(f"load_links fallback to default due to: {e}")
         return LINKS_DEFAULT.copy()
 
 def save_links(links):
@@ -264,7 +224,6 @@ def proxy_health_check(proxy_url):
     try:
         headers = {"User-Agent": random.choice(user_agents_list)}
         resp = requests.get("https://www.google.com", proxies={"http": proxy_url, "https": proxy_url}, headers=headers, timeout=5)
-        # Uznać za działające także status 204 (No Content)
         if resp.status_code in [200, 204, 302, 301]:
             return True
         else:
@@ -280,12 +239,10 @@ proxy_lock = threading.Lock()
 def get_next_proxy():
     global proxy_index
     with proxy_lock:
-        # Inicjalizacja liczników, jeśli puste
         for p in PROXIES:
             if p not in proxy_fail_counts:
                 proxy_fail_counts[p] = 0
 
-        # Filtrujemy żywe proxy (ważne dla wyboru)
         alive_proxies = []
         for proxy in PROXIES[:]:
             if proxy in proxy_health_cache:
@@ -293,7 +250,7 @@ def get_next_proxy():
                     alive_proxies.append(proxy)
                 else:
                     proxy_fail_counts[proxy] += 1
-                    if proxy_fail_counts[proxy] >= 10:  # limit 10 prób
+                    if proxy_fail_counts[proxy] >= 10:
                         logging.warning(f"Usuwanie proxy {proxy} po {proxy_fail_counts[proxy]} nieudanych próbach")
                         PROXIES.remove(proxy)
                         proxy_fail_counts.pop(proxy, None)
@@ -311,7 +268,6 @@ def get_next_proxy():
             logging.error("Brak dostępnych proxy")
             return None
 
-        # Wymuszenie rotacji: wybierz proxy kolejny wg indeksu
         chosen = alive_proxies[proxy_index % len(alive_proxies)]
         proxy_index += 1
 
@@ -327,9 +283,8 @@ def fetch_cpc():
         logging.warning("No proxy available for CPC fetch")
         return 0.1
     try:
-        # Przykładowe wywołanie realnego API CPC przez proxy
         resp = requests.get(
-            "https://twoja-api-cpc.com/fetch",  # Zamień na rzeczywisty adres API
+            "https://twoja-api-cpc.com/fetch",
             proxies=proxy,
             headers=headers,
             timeout=7
@@ -350,17 +305,14 @@ def fetch_cpc():
         return 0.1
 
 def smart_delay(base):
-    """Losowa modyfikacja czasu opóźnienia, by działać bardziej naturalnie"""
     return base * random.uniform(0.8, 1.2)
 
 def check_achievements(stats, bot):
     new_achievements = []
-    # Sprawdzanie kamieni milowych przychodu
-    for milestone in bot["milestones"][:]:  # używamy kopii listy żeby bezpiecznie usuwać
+    for milestone in bot["milestones"][:]:
         if stats["revenue"] >= milestone:
             new_achievements.append(f"💰 Milestone reached: ${milestone}")
             bot["milestones"].remove(milestone)
-    # Dodatkowe osiągnięcia przy kliknięciach i wyświetleniach
     if stats["clicks"] >= 100 and "Century Club" not in bot["achievements"]:
         new_achievements.append("🎯 Century Club - 100 clicks")
         bot["achievements"].append("Century Club")
@@ -369,9 +321,8 @@ def check_achievements(stats, bot):
         bot["achievements"].append("Impression Master")
     return new_achievements
 
-# Supermode and megascan control variables and locks
 supermode_active = False
-supermode_lock = threading
+supermode_lock = threading.Lock()
 
 def start_supermode(duration_seconds):
     global supermode_active, supermode_end_time
@@ -401,6 +352,10 @@ def stop_supermode():
                 bot["watching_active"] = False
     logging.info("Supermode deactivated")
 
+mega_scan_active = False
+mega_scan_end_time = 0
+mega_scan_lock = threading.Lock()
+
 def start_mega_scan(duration_seconds):
     global mega_scan_active, mega_scan_end_time
     with mega_scan_lock:
@@ -415,7 +370,6 @@ def monitor_and_adapt(bot, error_rate_threshold=0.2):
         bot["expensive_mode"] = not bot["expensive_mode"]
         bot["turbo_mode"] = not bot["turbo_mode"]
         logging.info(f"Bot {bot['name']} zmienił tryb z powodu wysokiego error rate: {error_rate}")
-    # Clear error history after adaptation
     bot["error_window"] = []
 
 def ai_bot_worker(bot_name):
@@ -511,13 +465,15 @@ def ai_bot_worker(bot_name):
 
         time.sleep(smart_delay(bot["interval"]))
 
+@app.route("/links")
+def api_links():
+    return jsonify(load_links())
+
 @app.route("/stats")
 def api_stats():
     with lock:
         ctr = (stats["clicks"] / stats["imps"] * 100) if stats["imps"] > 0 else 0
         return jsonify({**stats, "ctr": round(ctr, 2)})
-
-
 
 @app.route("/command", methods=["POST"])
 def api_command():
@@ -582,7 +538,7 @@ def api_command():
             return jsonify({"message": "Stopped watching"})
 
         if action == "aktywuj_supermode":
-            start_supermode(6000)  # 6000 seconds
+            start_supermode(6000)
             return jsonify({"message": "Supermode activated for 6000 seconds"})
 
         if action == "dezaktywuj_supermode":
@@ -590,7 +546,7 @@ def api_command():
             return jsonify({"message": "Supermode deactivated"})
 
         if action == "start_mega_scan":
-            start_mega_scan(3000)  # 3000 seconds
+            start_mega_scan(3000)
             return jsonify({"message": "Mega scan activated for 3000 seconds"})
 
     return jsonify({"error": "Unknown command"}), 400
@@ -599,18 +555,11 @@ def api_command():
 def api_huggingface_chat():
     data = request.get_json()
 
-    # Poprawiony warunek: dodane "data" po "message" not in
-    if not data or "message" not in data:
+    # Poprawiony warunek
+    if not data or "message" not in 
         return jsonify({"error": "Missing message"}), 400
 
     message = data["message"]
-
-    # Tutaj dodaj logikę obsługi wiadomości (np. wywołanie API Hugging Face)
-    # Przykład:
-    # response = query_huggingface(message)
-    # return jsonify({"response": response})
-
-    return jsonify({"status": "success", "received_message": message})
 
     token = os.getenv("HUGGINGFACE_API_KEY", "")
     if not token:
@@ -667,7 +616,19 @@ def api_scan():
     start_mega_scan(3000)
     return jsonify({"message": "Mega scan started for 3000 seconds"})
 
-# Realistic Selenium click simulation
+def get_driver():
+    """Zwraca skonfigurowany driver Chrome w trybie headless dla Render.com"""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
+
 def selenium_click(url):
     options = Options()
     options.add_argument("--headless")
@@ -710,7 +671,6 @@ def selenium_click(url):
     finally:
         driver.quit()
 
-# Proxy auto-refresh
 def proxy_auto_refresh():
     global PROXIES, proxy_fail_counts, proxy_health_cache
     to_remove = [p for p, count in proxy_fail_counts.items() if count >= 3]
@@ -720,7 +680,6 @@ def proxy_auto_refresh():
         proxy_fail_counts.pop(p, None)
         proxy_health_cache.pop(p, None)
 
-    # Example adding new proxies - replace with real API or source
     if len(PROXIES) < 5:
         new_proxies = ["http://newproxy1:8080", "http://newproxy2:8080"]
         PROXIES.extend(new_proxies)
@@ -728,7 +687,6 @@ def proxy_auto_refresh():
             proxy_fail_counts[p] = 0
             proxy_health_cache[p] = True
 
-# Analytics report with auth decorator
 AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "secret-token")
 
 def require_auth(f):
@@ -760,7 +718,6 @@ def get_analytics_report():
 def api_analytics():
     return jsonify(get_analytics_report())
 
-# WebSocket status updates
 @sock.route('/ws_status')
 def ws_status(ws):
     while True:
@@ -773,7 +730,6 @@ def ws_status(ws):
         ws.send(json.dumps(data))
         time.sleep(2)
 
-# Simple blockchain for stats
 class SimpleBlockchain:
     def __init__(self):
         self.chain = []
@@ -804,8 +760,6 @@ blockchain = SimpleBlockchain()
 def record_click_to_blockchain():
     last_hash = blockchain.get_last_block()['hash']
     blockchain.create_block(previous_hash=last_hash)
-
-# Call record_click_to_blockchain() in ai_bot_worker after successful click if needed
 
 if __name__ == "__main__":
     logging.info(f"Starting AI Clicker on port {PORT}")
