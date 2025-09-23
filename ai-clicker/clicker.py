@@ -302,18 +302,27 @@ def ai_bot_worker(bot_name):
 def stats_api():
     with lock:
         ctr = (stats["clicks"] / stats["imps"] * 100) if stats["imps"] > 0 else 0
-        return jsonify(**stats, ctr=round(ctr, 2))
+        return jsonify({**stats, "ctr": round(ctr, 2)})  # Poprawione: słownik z "ctr"
 
 @app.route("/links", methods=["GET", "POST"])
 def links_api():
     if request.method == "GET":
         return jsonify(load_links())
+
     data = request.get_json()
     links = load_links()
-    if not data or "network" not in data or "url" not in 
-        return jsonify(links)
+
+    # Poprawiony warunek: dodane "data" po "url" not in
+    if not data or "network" not in data or "url" not in data:
+        return jsonify(links)  # Zwraca listę linków, jeśli dane są niepoprawne
+
     new_id = max((l["id"] for l in links), default=0) + 1
-    new_link = {"id": new_id, "network": data["network"], "url": data["url"], "weight": 1.0}
+    new_link = {
+        "id": new_id,
+        "network": data["network"],
+        "url": data["url"],
+        "weight": 1.0
+    }
     links.append(new_link)
     save_links(links)
     logging.info(f"Added new link: {new_link}")
