@@ -1,41 +1,45 @@
-FROM alpine:3.18
+# Start with a base image that includes Python
+FROM python:3.9-alpine
 
-# 1. Instalacja niezbędnych pakietów
-RUN apk add --no-cache \
-    openresty \
-    openresty-openssl \
-    openresty-resty \
-    openvpn \
-    python3 \
-    py3-pip \
-    supervisor \
-    curl
+# Install system dependencies
+RUN apk add --no-cache \\
+    curl \\
+    openvpn \\
+    ca-certificates \\
+    gcc \\
+    python3-dev \\
+    musl-dev \\
+    && mkdir -p /usr/share/nginx/html /var/log/nginx /vpnbook
 
-# 2. Utworzenie struktury katalogów
-RUN mkdir -p /app /vpnbook /usr/local/openresty/nginx/conf/conf.d /var/log/supervisor
+# Install Python dependencies
+RUN pip install --no-cache-dir numpy opencv-python pyautogui
 
-WORKDIR /app
+# Copy your Python script
+COPY clicker.py /app/clicker.py
 
-# 3. Skopiowanie plików aplikacji
-COPY ai-clicker/       /app/ai-clicker/
-COPY vpnbook/          /vpnbook/
-COPY web/              /app/web/
-COPY nginx.conf        /usr/local/openresty/nginx/conf/nginx.conf
-COPY conf.d/           /usr/local/openresty/nginx/conf/conf.d/
+# Copy VPN files
+COPY --chown=nginx:nginx ../vpnbook/ /vpnbook/
 
-# 4. Instalacja zależności Pythona
-RUN pip3 install --no-cache-dir -r /app/ai-clicker/requirements.txt
+# Install OpenResty (NGINX + Lua) if still needed
+RUN apk add --no-cache openresty
 
-# 5. Supervisor: plik konfiguracyjny
-COPY supervisord.conf  /etc/supervisord.conf
+# Configure NGINX
+COPY --chown=nginx:nginx nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY --chown=nginx:nginx nginx/conf.d/    /usr/local/openresty/nginx/conf/conf.d/
 
-# 6. Uprawnienia
-RUN chmod -R 755 /app /vpnbook
+# Frontend (static files)
+COPY --chown=nginx:nginx ../web/          /usr/share/nginx/html/
 
-# 7. Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -f http://localhost/stats || exit 1
+# Set permissions
+RUN chmod -R 755 /usr/share/nginx/html /vpnbook && \\
+    chown -R nginx:nginx /usr/share/nginx/html /vpnbook
 
-EXPOSE 80 5000
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\
+    CMD curl -f http://localhost/stats || exit 1
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# Expose port 80
+EXPOSE 80
+
+# Command to run both your Python script and OpenResty
+CMD sh -c "python /app/clicker.py & openresty -g 'daemon off;'"
