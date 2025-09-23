@@ -262,15 +262,13 @@
     chat.scrollTop = chat.scrollHeight;
   }
 
-  // Simple AI chat simulation with enhanced options
   async function sendAICommand(cmd){
     const input = document.getElementById('commandInput');
     let text = cmd || input.value.trim();
     if(!text) return;
     input.value = '';
     appendMessage('User', text);
-    
-    // Basic commands
+
     if(text.toLowerCase() === 'help'){
       appendMessage('AI', 'Komendy: toggle_expensive, toggle_turbo, toggle_stealth, set_click_rate <0.05-0.80>, boost, reset, greet, joke, time');
       return;
@@ -288,26 +286,28 @@
       return;
     }
 
-    // Server commands
     try{
       const [action, value] = text.split(' ');
       const res = await fetch('/command', {
         method: 'POST',
-        headers:{ 'Content-Type':'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({action, value})
       });
       const data = await res.json();
       appendMessage('AI', data.message || JSON.stringify(data));
       updateModes(data);
-    } catch(e){
+    }catch(e){
       appendMessage('AI', 'Błąd komunikacji');
     }
   }
 
-  function updateModes(d){
-    if(d.expensive_mode !== undefined) document.getElementById('expensiveMode').className = 'mode-indicator '+(d.expensive_mode ? 'mode-active' : 'mode-inactive');
-    if(d.turbo_mode !== undefined) document.getElementById('turboMode').className = 'mode-indicator '+(d.turbo_mode ? 'mode-active' : 'mode-inactive');
-    if(d.stealth_mode !== undefined) document.getElementById('stealthMode').className = 'mode-indicator '+(d.stealth_mode ? 'mode-active' : 'mode-inactive');
+  function updateModes(data){
+    if(data.expensive_mode !== undefined)
+      document.getElementById('expensiveMode').className = 'mode-indicator ' + (data.expensive_mode ? 'mode-active' : 'mode-inactive');
+    if(data.turbo_mode !== undefined)
+      document.getElementById('turboMode').className = 'mode-indicator ' + (data.turbo_mode ? 'mode-active' : 'mode-inactive');
+    if(data.stealth_mode !== undefined)
+      document.getElementById('stealthMode').className = 'mode-indicator ' + (data.stealth_mode ? 'mode-active' : 'mode-inactive');
   }
 
   async function fetchStats(){
@@ -324,7 +324,7 @@
       chart.data.labels = chartData.map(o => o.t);
       chart.data.datasets[0].data = chartData.map(o => o.v);
       chart.update();
-    } catch (e) {
+    }catch(e){
       console.error(e);
     }
   }
@@ -332,21 +332,30 @@
   async function manualScan(){
     await fetch('/scan', {method: 'POST'});
     clickCount++; if(clickCount % 3 === 0) launchConfetti();
-    appendMessage('System', '⚡ MEGA SCAN executed!');
+    appendMessage('System', '⚡ MEGA SCAN wykonany!');
     fetchStats();
   }
 
-  function openModal(){ document.getElementById('linkModal').style.display = 'flex'; }
-  function closeModal(){ document.getElementById('linkModal').style.display = 'none'; }
+  function openModal(){
+    document.getElementById('linkModal').style.display = 'flex';
+    document.getElementById('modalNetwork').focus();
+  }
+  function closeModal(){
+    document.getElementById('linkModal').style.display = 'none';
+  }
 
   async function saveLink(){
     const net = document.getElementById('modalNetwork').value.trim();
     const url = document.getElementById('modalUrl').value.trim();
-    if(!net || !url){
-      alert('Wypełnij oba pola');
+    if(!net || !url) {
+      alert('Wypełnij oba pola!');
       return;
     }
-    await fetch('/links', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({network: net, url: url})});
+    await fetch('/links', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({network: net, url: url})
+    });
     document.getElementById('modalNetwork').value = '';
     document.getElementById('modalUrl').value = '';
     closeModal();
@@ -358,19 +367,19 @@
     const arr = await res.json();
     const ul = document.getElementById('linksList');
     ul.innerHTML = '';
-    arr.forEach(l => {
-      ul.innerHTML += `<li>#${l.id} ${l.network} [w=${l.weight.toFixed(2)}]<br><code>${l.url}</code></li>`;
+    arr.forEach(link => {
+      ul.innerHTML += `<li>#${link.id} ${link.network} [w=${link.weight.toFixed(2)}]<br><code>${link.url}</code></li>`;
     });
   }
 
   function launchConfetti(){
     const c = document.getElementById('confetti');
-    for(let i=0; i<50; i++){
+    for(let i = 0; i < 50; i++){
       const p = document.createElement('div');
       p.className = 'confetti-piece';
       p.style.backgroundColor = `hsl(${Math.random()*360},70%,60%)`;
       p.style.left = `${Math.random()*100}%`;
-      p.style.setProperty('--dx', (Math.random()*400-200) + 'px');
+      p.style.setProperty('--dx', (Math.random()*400 - 200) + 'px');
       p.style.setProperty('--rot', (Math.random()*720) + 'deg');
       p.style.animationDelay = (Math.random()*2) + 's';
       c.appendChild(p);
@@ -382,8 +391,8 @@
     initChart();
     fetchStats();
     loadLinks();
-    setInterval(fetchStats, 3000);
-    setInterval(loadLinks, 5000);
+    setInterval(fetchStats,3000);
+    setInterval(loadLinks,5000);
   });
 </script>
 </body>
