@@ -8,18 +8,27 @@ import logging
 import secrets
 import re
 from datetime import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import WebDriverException, TimeoutException
 from dotenv import load_dotenv
+from functools import wraps
+import numpy as np
+import speech_recognition as sr
+from flask_sock import Sock
+import hashlib
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+sock = Sock(app)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 lock = threading.Lock()
@@ -60,6 +69,7 @@ ai_bots_cfg = {
         "stealth_mode": True,
         "min_rate": 0.05,
         "max_rate": 0.5,
+        "error_window": []
     },
     "Bot2": {
         "name": "TurboBot",
@@ -75,6 +85,7 @@ ai_bots_cfg = {
         "stealth_mode": False,
         "min_rate": 0.1,
         "max_rate": 0.8,
+        "error_window": []
     },
     "Bot3": {
         "name": "StealthBot",
@@ -90,6 +101,7 @@ ai_bots_cfg = {
         "stealth_mode": True,
         "min_rate": 0.05,
         "max_rate": 0.4,
+        "error_window": []
     },
     "Bot4": {
         "name": "BoosterBot",
@@ -105,6 +117,7 @@ ai_bots_cfg = {
         "stealth_mode": True,
         "min_rate": 0.1,
         "max_rate": 0.7,
+        "error_window": []
     },
 }
 
@@ -263,6 +276,16 @@ def start_mega_scan(duration_seconds):
         mega_scan_end_time = time.time() + duration_seconds
     logging.info(f"Mega scan activated for {duration_seconds} seconds")
 
+def monitor_and_adapt(bot, error_rate_threshold=0.2):
+    error_window = bot.get("error_window", [])
+    error_rate = np.mean(error_window) if error_window else 0
+    if error_rate > error_rate_threshold:
+        bot["expensive_mode"] = not bot["expensive_mode"]
+        bot["turbo_mode"] = not bot["turbo_mode"]
+        logging.info(f"Bot {bot['name']} zmienił tryb z powodu wysokiego error rate: {error_rate}")
+    # Clear error history after adaptation
+    bot["error_window"] = []
+
 def ai_bot_worker(bot_name):
     bot = ai_bots_cfg[bot_name]
     logging.info(f"Bot '{bot['name']}' started")
@@ -270,6 +293,8 @@ def ai_bot_worker(bot_name):
 
     session = requests.Session()
     session.headers.update({"User-Agent": random.choice(user_agents_list)})
+
+    counter = 0
 
     while True:
         with supermode_lock:
@@ -308,10 +333,13 @@ def ai_bot_worker(bot_name):
                     stats["imps"] += 1 if not mega_active else 4
                     stats["last_update"] = datetime.now().isoformat()
                 logging.info(f"Bot '{bot['name']}' clicked URL successfully")
+                bot["error_window"].append(0)
             else:
                 logging.warning(f"Bot '{bot['name']}' received status {response.status_code} for URL")
+                bot["error_window"].append(1)
         except Exception as e:
             logging.error(f"Bot '{bot['name']}' error during click: {e}")
+            bot["error_window"].append(1)
 
         with lock:
             if mega_active:
@@ -343,6 +371,11 @@ def ai_bot_worker(bot_name):
             elif r < 0.12:
                 stats["revenue"] += 5.0
                 logging.info(f"{bot['name']} got revenue boost +5")
+
+        counter += 1
+        if counter >= 50:
+            monitor_and_adapt(bot)
+            counter = 0
 
         time.sleep(smart_delay(bot["interval"]))
 
@@ -508,6 +541,146 @@ def index():
 def api_scan():
     start_mega_scan(3000)
     return jsonify({"message": "Mega scan started for 3000 seconds"})
+
+# Realistic Selenium click simulation
+def selenium_click(url):
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+    options.add_argument("--no-sandbox")
+
+    driver = webdriver.Chrome(options=options)
+    try:
+        driver.get(url)
+        wait = WebDriverWait(driver, 10)
+        try:
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        except TimeoutException:
+            pass
+        time.sleep(random.uniform(3, 6))
+
+        action = ActionChains(driver)
+        for _ in range(random.randint(3,7)):
+            action.move_by_offset(random.randint(10,300), random.randint(10,300)).perform()
+            time.sleep(random.uniform(0.3,1.2))
+
+        driver.execute_script("window.scrollBy(0, window.innerHeight / 2)")
+        time.sleep(random.uniform(2,4))
+        driver.execute_script("window.scrollBy(0, -window.innerHeight / 2)")
+        time.sleep(random.uniform(1,2))
+
+        try:
+            clickable_elements = driver.find_elements(By.TAG_NAME, "a")
+            if clickable_elements:
+                chosen = random.choice(clickable_elements)
+                action.move_to_element(chosen).click().perform()
+                time.sleep(random.uniform(2,5))
+        except Exception:
+            pass
+        return True
+    except Exception as e:
+        print(f"Selenium error: {e}")
+        return False
+    finally:
+        driver.quit()
+
+# Proxy auto-refresh
+def proxy_auto_refresh():
+    global PROXIES, proxy_fail_counts, proxy_health_cache
+    to_remove = [p for p, count in proxy_fail_counts.items() if count >= 3]
+    for p in to_remove:
+        if p in PROXIES:
+            PROXIES.remove(p)
+        proxy_fail_counts.pop(p, None)
+        proxy_health_cache.pop(p, None)
+
+    # Example adding new proxies - replace with real API or source
+    if len(PROXIES) < 5:
+        new_proxies = ["http://newproxy1:8080", "http://newproxy2:8080"]
+        PROXIES.extend(new_proxies)
+        for p in new_proxies:
+            proxy_fail_counts[p] = 0
+            proxy_health_cache[p] = True
+
+# Analytics report with auth decorator
+AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "secret-token")
+
+def require_auth(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        token = request.headers.get("Authorization")
+        if token != f"Bearer {AUTH_TOKEN}":
+            abort(401, description="Unauthorized")
+        return f(*args, **kwargs)
+    return wrapper
+
+def get_analytics_report():
+    with lock:
+        return {
+            "total_clicks": stats["clicks"],
+            "total_impressions": stats["imps"],
+            "total_revenue": round(stats["revenue"], 4),
+            "bots": {bot["name"]: {
+                "achievements": bot["achievements"],
+                "click_rate": bot["click_rate"],
+                "expensive_mode": bot["expensive_mode"],
+                "turbo_mode": bot["turbo_mode"],
+                "stealth_mode": bot["stealth_mode"]
+            } for bot in ai_bots_cfg.values()}
+        }
+
+@app.route("/analytics")
+@require_auth
+def api_analytics():
+    return jsonify(get_analytics_report())
+
+# WebSocket status updates
+@sock.route('/ws_status')
+def ws_status(ws):
+    while True:
+        with lock:
+            data = {
+                "clicks": stats["clicks"],
+                "impressions": stats["imps"],
+                "revenue": round(stats["revenue"], 4)
+            }
+        ws.send(json.dumps(data))
+        time.sleep(2)
+
+# Simple blockchain for stats
+class SimpleBlockchain:
+    def __init__(self):
+        self.chain = []
+        self.create_block(previous_hash='0')
+
+    def create_block(self, previous_hash):
+        block = {
+            'index': len(self.chain) + 1,
+            'timestamp': str(datetime.now()),
+            'clicks': stats["clicks"],
+            'imps': stats["imps"],
+            'revenue': stats["revenue"],
+            'previous_hash': previous_hash
+        }
+        block['hash'] = self.hash(block)
+        self.chain.append(block)
+        return block
+
+    def hash(self, block):
+        block_string = json.dumps(block, sort_keys=True).encode()
+        return hashlib.sha256(block_string).hexdigest()
+
+    def get_last_block(self):
+        return self.chain[-1]
+
+blockchain = SimpleBlockchain()
+
+def record_click_to_blockchain():
+    last_hash = blockchain.get_last_block()['hash']
+    blockchain.create_block(previous_hash=last_hash)
+
+# Call record_click_to_blockchain() in ai_bot_worker after successful click if needed
 
 if __name__ == "__main__":
     logging.info(f"Starting AI Clicker on port {PORT}")
