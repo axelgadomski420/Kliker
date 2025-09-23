@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
+export no_proxy="localhost,127.0.0.1,.mycompany.local"
 
 load_dotenv()
 app = Flask(__name__)
