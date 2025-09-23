@@ -234,28 +234,82 @@ def command_api():
     data = request.get_json() or {}
     action = data.get("action", "").lower()
     with lock:
-        if action == "toggle_expensive":
+        if action == "przelacz_drogi_tryb":
             for bot in ai_bots_cfg.values():
                 bot["expensive_mode"] = not bot["expensive_mode"]
-            return jsonify({"message": "Toggled expensive mode for all bots"})
-        if action == "toggle_turbo":
+            return jsonify({"message": "Przełączono tryb drogi dla wszystkich botów"})
+
+        elif action == "przelacz_turbo":
             for bot in ai_bots_cfg.values():
                 bot["turbo_mode"] = not bot["turbo_mode"]
-            return jsonify({"message": "Toggled turbo mode for all bots"})
-        if action == "toggle_stealth":
+            return jsonify({"message": "Przełączono tryb turbo dla wszystkich botów"})
+
+        elif action == "przelacz_ukryty":
             for bot in ai_bots_cfg.values():
                 bot["stealth_mode"] = not bot["stealth_mode"]
-            return jsonify({"message": "Toggled stealth mode for all bots"})
-        if action == "boost":
+            return jsonify({"message": "Przełączono tryb ukryty dla wszystkich botów"})
+
+        elif action == "zwieksz_przychod":
             stats["revenue"] += 10.0
-            return jsonify({"revenue": stats["revenue"], "message": "Boost triggered"})
-        if action == "reset":
+            return jsonify({"revenue": stats["revenue"], "message": "Zwiększono przychód o 10"})
+
+        elif action == "resetuj_statystyki":
             stats.update({"imps": 0, "clicks": 0, "revenue": 0.0, "pending": 0})
             for bot in ai_bots_cfg.values():
                 bot["history"].clear()
                 bot["achievements"].clear()
-            return jsonify({"message": "Stats and bots reset", **stats})
-    return jsonify({"error": "unknown command"}), 400
+            return jsonify({"message": "Zresetowano statystyki i boty", **stats})
+
+        elif action == "ustaw_click_rate":
+            try:
+                v = float(data.get("value", 1.0))
+                for bot in ai_bots_cfg.values():
+                    bot["click_rate"] = max(bot.get("min_rate", 0.1), min(v, bot.get("max_rate", 10.0)))
+                return jsonify({"message": f"Ustawiono click rate na {v} sekund dla wszystkich botów"})
+            except (ValueError, TypeError):
+                return jsonify({"error": "Nieprawidłowa wartość dla click rate"}), 400
+
+        elif action == "start_klikanie":
+            for bot in ai_bots_cfg.values():
+                bot["clicking_active"] = True
+            return jsonify({"message": "Rozpoczęto automatyczne klikanie dla wszystkich botów"})
+
+        elif action == "stop_klikanie":
+            for bot in ai_bots_cfg.values():
+                bot["clicking_active"] = False
+            return jsonify({"message": "Zatrzymano automatyczne klikanie dla wszystkich botów"})
+
+        elif action == "start_oglądanie":
+            for bot in ai_bots_cfg.values():
+                bot["watching_active"] = True
+            return jsonify({"message": "Rozpoczęto automatyczne oglądanie dla wszystkich botów"})
+
+        elif action == "stop_oglądanie":
+            for bot in ai_bots_cfg.values():
+                bot["watching_active"] = False
+            return jsonify({"message": "Zatrzymano automatyczne oglądanie dla wszystkich botów"})
+
+        elif action == "aktywuj_supermode":
+            for bot in ai_bots_cfg.values():
+                bot["expensive_mode"] = True
+                bot["turbo_mode"] = True
+                bot["stealth_mode"] = True
+                bot["click_rate"] = 4.0
+                bot["clicking_active"] = True
+                bot["watching_active"] = True
+            return jsonify({"message": "Supermode aktywowany: wszystkie tryby włączone i automatyczne działanie rozpoczęte"})
+
+        elif action == "dezaktywuj_supermode":
+            for bot in ai_bots_cfg.values():
+                bot["expensive_mode"] = False
+                bot["turbo_mode"] = False
+                bot["stealth_mode"] = False
+                bot["clicking_active"] = False
+                bot["watching_active"] = False
+            return jsonify({"message": "Supermode dezaktywowany: wszystkie tryby wyłączone i działania zatrzymane"})
+
+        else:
+            return jsonify({"error": "Nieznana komenda"}), 400
 @app.route("/scan", methods=["POST"])
 def manual_scan():
     with lock:
