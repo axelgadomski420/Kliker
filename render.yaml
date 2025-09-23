@@ -58,13 +58,3 @@ services:
         value: pk_test_…
       - key: HUG_TOKEN
         value: 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
-
-        value: https://<your-service>.onrender.com
-      - key: STRIPE_SECRET
-        value: sk_test_…
-      - key: STRIPE_PUBLIC
-        value: pk_test_…
-      - key: HUG_TOKEN
-        value: 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
-      - key: VPN_CONFIG_PATH
-        value: /vpnbook/PL134.ovpn
