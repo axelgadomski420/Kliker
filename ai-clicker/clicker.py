@@ -274,21 +274,26 @@ def proxy_health_check(proxy_url):
         logging.warning(f"Błąd proxy {proxy_url}: {e}")
         return False
 
+proxy_index = 0
+proxy_lock = threading.Lock()
+
 def get_next_proxy():
+    global proxy_index
     with proxy_lock:
-        alive_proxies = []
         # Inicjalizacja liczników, jeśli puste
         for p in PROXIES:
             if p not in proxy_fail_counts:
                 proxy_fail_counts[p] = 0
 
+        # Filtrujemy żywe proxy (ważne dla wyboru)
+        alive_proxies = []
         for proxy in PROXIES[:]:
             if proxy in proxy_health_cache:
                 if proxy_health_cache[proxy]:
                     alive_proxies.append(proxy)
                 else:
                     proxy_fail_counts[proxy] += 1
-                    if proxy_fail_counts[proxy] >= 10:  # zwiększony limit prób
+                    if proxy_fail_counts[proxy] >= 10:  # limit 10 prób
                         logging.warning(f"Usuwanie proxy {proxy} po {proxy_fail_counts[proxy]} nieudanych próbach")
                         PROXIES.remove(proxy)
                         proxy_fail_counts.pop(proxy, None)
@@ -297,14 +302,23 @@ def get_next_proxy():
                 if proxy_health_check(proxy):
                     proxy_health_cache[proxy] = True
                     alive_proxies.append(proxy)
+                    proxy_fail_counts[proxy] = 0
                 else:
                     proxy_health_cache[proxy] = False
                     proxy_fail_counts[proxy] = proxy_fail_counts.get(proxy, 0) + 1
+
         if not alive_proxies:
             logging.error("Brak dostępnych proxy")
             return None
-        chosen = random.choice(alive_proxies)
-        return {"http": chosen, "https": chosen}
+
+        # Wymuszenie rotacji: wybierz proxy kolejny wg indeksu
+        chosen = alive_proxies[proxy_index % len(alive_proxies)]
+        proxy_index += 1
+
+        if chosen.startswith("socks5://"):
+            return {"http": chosen, "https": chosen}
+        else:
+            return {"http": chosen, "https": chosen}
 
 def fetch_cpc():
     proxy = get_next_proxy()
