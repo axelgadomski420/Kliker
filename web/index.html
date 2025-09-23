@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>🚀 ULTIMATE Ad Mining Platform</title>
   <style>
+    /* kompletne style jak podałeś wcześniej */
     * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -168,6 +169,7 @@
       text-align: right;
     }
   </style>
+  <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
 <div class="container">
@@ -198,16 +200,16 @@
       </div>
     </div>
 
-    <div class="control-panel" style="display:flex; flex-direction: column;">
+    <div class="control-panel">
       <h3>Manage Links</h3>
       <button onclick="openModal()">Dodaj link</button>
       <ul id="linksList" class="links-list"></ul>
     </div>
 
-    <div class="control-panel" style="display:flex; flex-direction: column;">
+    <div class="control-panel">
       <h3>🤖 AI Chat</h3>
       <div id="chatWindow"></div>
-      <input id="commandInput" placeholder="Wpisz komendę..." onkeydown="if(event.key === 'Enter') sendAICommand()" />
+      <input id="commandInput" placeholder="Wpisz komendę..." onkeydown="if(event.key==='Enter') sendAICommand()" />
       <button onclick="sendAICommand()">Wyślij</button>
     </div>
   </div>
@@ -231,7 +233,7 @@
 <script>
   let chart, chartData = [], clickCount = 0;
 
-  function initChart(){
+  function initChart() {
     const ctx = document.getElementById('revenueChart').getContext('2d');
     chart = new Chart(ctx, {
       type: 'line',
@@ -254,7 +256,7 @@
     });
   }
 
-  function appendMessage(who, msg){
+  function appendMessage(who, msg) {
     const chat = document.getElementById('chatWindow');
     const d = document.createElement('div');
     d.innerHTML = `<strong>[${new Date().toLocaleTimeString()}] ${who}:</strong> ${msg}`;
@@ -262,56 +264,56 @@
     chat.scrollTop = chat.scrollHeight;
   }
 
-  async function sendAICommand(cmd){
+  async function sendAICommand(cmd) {
     const input = document.getElementById('commandInput');
     let text = cmd || input.value.trim();
-    if(!text) return;
+    if (!text) return;
     input.value = '';
     appendMessage('User', text);
 
-    if(text.toLowerCase() === 'help'){
+    if (text.toLowerCase() === 'help') {
       appendMessage('AI', 'Komendy: toggle_expensive, toggle_turbo, toggle_stealth, set_click_rate <0.05-0.80>, boost, reset, greet, joke, time');
       return;
     }
-    if(text.toLowerCase() === 'greet'){
+    if (text.toLowerCase() === 'greet') {
       appendMessage('AI', 'Cześć! Jak mogę pomóc?');
       return;
     }
-    if(text.toLowerCase() === 'joke'){
+    if (text.toLowerCase() === 'joke') {
       appendMessage('AI', 'Dlaczego programiści mylą Halloween z Bożym Narodzeniem? Bo OCT 31 == DEC 25!');
       return;
     }
-    if(text.toLowerCase() === 'time'){
+    if (text.toLowerCase() === 'time') {
       appendMessage('AI', `Aktualny czas to ${new Date().toLocaleTimeString()}`);
       return;
     }
 
-    try{
+    try {
       const [action, value] = text.split(' ');
       const res = await fetch('/command', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({action, value})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, value })
       });
       const data = await res.json();
       appendMessage('AI', data.message || JSON.stringify(data));
       updateModes(data);
-    }catch(e){
+    } catch (e) {
       appendMessage('AI', 'Błąd komunikacji');
     }
   }
 
-  function updateModes(data){
-    if(data.expensive_mode !== undefined)
+  function updateModes(data) {
+    if (data.expensive_mode !== undefined)
       document.getElementById('expensiveMode').className = 'mode-indicator ' + (data.expensive_mode ? 'mode-active' : 'mode-inactive');
-    if(data.turbo_mode !== undefined)
+    if (data.turbo_mode !== undefined)
       document.getElementById('turboMode').className = 'mode-indicator ' + (data.turbo_mode ? 'mode-active' : 'mode-inactive');
-    if(data.stealth_mode !== undefined)
+    if (data.stealth_mode !== undefined)
       document.getElementById('stealthMode').className = 'mode-indicator ' + (data.stealth_mode ? 'mode-active' : 'mode-inactive');
   }
 
-  async function fetchStats(){
-    try{
+  async function fetchStats() {
+    try {
       const res = await fetch('/stats');
       const d = await res.json();
       document.getElementById('imps').textContent = d.imps.toLocaleString();
@@ -319,42 +321,42 @@
       document.getElementById('ctr').textContent = d.ctr + '%';
       document.getElementById('revenue').textContent = d.revenue.toFixed(2);
       const now = new Date().toLocaleTimeString();
-      chartData.push({t: now, v: d.revenue});
-      if(chartData.length > 20) chartData.shift();
+      chartData.push({ t: now, v: d.revenue });
+      if (chartData.length > 20) chartData.shift();
       chart.data.labels = chartData.map(o => o.t);
       chart.data.datasets[0].data = chartData.map(o => o.v);
       chart.update();
-    }catch(e){
+    } catch (e) {
       console.error(e);
     }
   }
 
-  async function manualScan(){
-    await fetch('/scan', {method: 'POST'});
-    clickCount++; if(clickCount % 3 === 0) launchConfetti();
+  async function manualScan() {
+    await fetch('/scan', { method: 'POST' });
+    clickCount++; if (clickCount % 3 === 0) launchConfetti();
     appendMessage('System', '⚡ MEGA SCAN wykonany!');
     fetchStats();
   }
 
-  function openModal(){
+  function openModal() {
     document.getElementById('linkModal').style.display = 'flex';
     document.getElementById('modalNetwork').focus();
   }
-  function closeModal(){
+  function closeModal() {
     document.getElementById('linkModal').style.display = 'none';
   }
 
-  async function saveLink(){
+  async function saveLink() {
     const net = document.getElementById('modalNetwork').value.trim();
     const url = document.getElementById('modalUrl').value.trim();
-    if(!net || !url) {
+    if (!net || !url) {
       alert('Wypełnij oba pola!');
       return;
     }
     await fetch('/links', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({network: net, url: url})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ network: net, url: url })
     });
     document.getElementById('modalNetwork').value = '';
     document.getElementById('modalUrl').value = '';
@@ -362,7 +364,7 @@
     loadLinks();
   }
 
-  async function loadLinks(){
+  async function loadLinks() {
     const res = await fetch('/links');
     const arr = await res.json();
     const ul = document.getElementById('linksList');
@@ -372,16 +374,16 @@
     });
   }
 
-  function launchConfetti(){
+  function launchConfetti() {
     const c = document.getElementById('confetti');
-    for(let i = 0; i < 50; i++){
+    for (let i = 0; i < 50; i++) {
       const p = document.createElement('div');
       p.className = 'confetti-piece';
-      p.style.backgroundColor = `hsl(${Math.random()*360},70%,60%)`;
-      p.style.left = `${Math.random()*100}%`;
-      p.style.setProperty('--dx', (Math.random()*400 - 200) + 'px');
-      p.style.setProperty('--rot', (Math.random()*720) + 'deg');
-      p.style.animationDelay = (Math.random()*2) + 's';
+      p.style.backgroundColor = `hsl(${Math.random() * 360},70%,60%)`;
+      p.style.left = `${Math.random() * 100}%`;
+      p.style.setProperty('--dx', (Math.random() * 400 - 200) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720) + 'deg');
+      p.style.animationDelay = (Math.random() * 2) + 's';
       c.appendChild(p);
       setTimeout(() => p.remove(), 4000);
     }
@@ -391,8 +393,8 @@
     initChart();
     fetchStats();
     loadLinks();
-    setInterval(fetchStats,3000);
-    setInterval(loadLinks,5000);
+    setInterval(fetchStats, 3000);
+    setInterval(loadLinks, 5000);
   });
 </script>
 </body>
