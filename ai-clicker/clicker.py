@@ -184,30 +184,58 @@ def stats_api():
 def command_api():
     data = request.get_json() or {}
     action = data.get("action", "").lower()
+
     with lock:
         if action == "toggle_expensive":
             ai_cfg["expensive_mode"] = not ai_cfg["expensive_mode"]
-            return jsonify({"expensive_mode": ai_cfg["expensive_mode"], "message": "💎 Expensive toggled"})
-        if action == "toggle_turbo":
+            return jsonify({
+                "expensive_mode": ai_cfg["expensive_mode"],
+                "message": "💎 Expensive toggled"
+            })
+
+        elif action == "toggle_turbo":
             ai_cfg["turbo_mode"] = not ai_cfg["turbo_mode"]
-            return jsonify({"turbo_mode": ai_cfg["turbo_mode"], "message": "🚀 Turbo toggled"})
-        if action == "toggle_stealth":
+            return jsonify({
+                "turbo_mode": ai_cfg["turbo_mode"],
+                "message": "🚀 Turbo toggled"
+            })
+
+        elif action == "toggle_stealth":
             ai_cfg["stealth_mode"] = not ai_cfg["stealth_mode"]
-            return jsonify({"stealth_mode": ai_cfg["stealth_mode"], "message": "🥷 Stealth toggled"})
-        if action == "set_click_rate":
+            return jsonify({
+                "stealth_mode": ai_cfg["stealth_mode"],
+                "message": "🥷 Stealth toggled"
+            })
+
+        elif action == "set_click_rate":
             try:
                 v = float(data.get("value", ai_cfg["click_rate"]))
-                ai_cfg["click_rate"] = min(max(v, ai_cfg["min_rate"]), ai_cfg["max_rate"])
-                return jsonify({"click_rate": ai_cfg["click_rate"], "message": f"📈 click_rate={ai_cfg['click_rate']}"})
-            except:
+                ai_cfg["click_rate"] = min(
+                    max(v, ai_cfg["min_rate"]),
+                    ai_cfg["max_rate"]
+                )
+                return jsonify({
+                    "click_rate": ai_cfg["click_rate"],
+                    "message": f"📈 click_rate={ai_cfg['click_rate']}"
+                })
+            except (ValueError, TypeError):
                 return jsonify({"error": "invalid value"}), 400
-        if action == "boost":
+
+        elif action == "boost":
             stats["revenue"] += 10.0
-            return jsonify({"revenue": stats["revenue"], "message": "💰 Boost +$10!"})
-        if action == "reset":
+            return jsonify({
+                "revenue": stats["revenue"],
+                "message": "💰 Boost +$10!"
+            })
+
+        elif action == "reset":
             stats.update({"imps": 0, "clicks": 0, "revenue": 0.0, "pending": 0})
             ai_cfg["history"].clear()
-            return jsonify({"message": "🔄 Stats reset", **stats})
+            return jsonify({
+                "message": "🔄 Stats reset",
+                **stats
+            })
+
     return jsonify({"error": "unknown command"}), 400
 
 @app.route("/scan", methods=["POST"])
