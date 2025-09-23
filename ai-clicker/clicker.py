@@ -466,9 +466,19 @@ def api_command():
 @app.route("/huggingface_chat", methods=["POST"])
 def api_huggingface_chat():
     data = request.get_json()
-    if not data or "message" not in 
+
+    # Poprawiony warunek: dodane "data" po "message" not in
+    if not data or "message" not in data:
         return jsonify({"error": "Missing message"}), 400
+
     message = data["message"]
+
+    # Tutaj dodaj logikę obsługi wiadomości (np. wywołanie API Hugging Face)
+    # Przykład:
+    # response = query_huggingface(message)
+    # return jsonify({"response": response})
+
+    return jsonify({"status": "success", "received_message": message})
 
     token = os.getenv("HUGGINGFACE_API_KEY", "")
     if not token:
