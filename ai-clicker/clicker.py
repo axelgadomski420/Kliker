@@ -39,7 +39,8 @@ ai_cfg = {
     "history": [],
     "achievements": [],
     "milestones": [10, 50, 100, 250, 500, 1000],
-    "proxy_rotation": True,
+    "proxy_rotation" = False
+
     "smart_timing": True,
 }
 
