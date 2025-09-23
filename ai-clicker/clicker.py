@@ -70,6 +70,20 @@ def save_links(links):
 def get_proxy():
     if not ai_cfg["proxy_rotation"]:
         return None
+    global PROXIES
+    while PROXIES:
+        proxy_url = random.choice(PROXIES)
+        proxy = {"http": proxy_url, "https": proxy_url}
+        try:
+            resp = requests.get("https://httpbin.org/ip", proxies=proxy, timeout=3)
+            if resp.status_code == 200:
+                return proxy
+            else:
+                PROXIES.remove(proxy_url)
+        except Exception:
+            PROXIES.remove(proxy_url)
+    return None
+
     # Testuj proxy na żywo i usuwaj martwe IP z listy
     global PROXIES
     while PROXIES:
