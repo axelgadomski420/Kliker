@@ -11,13 +11,12 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load .env variables
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# Setup logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 PORT = int(os.getenv("PORT", "5000"))
@@ -31,7 +30,7 @@ stats = {
     "last_update": datetime.now().isoformat()
 }
 
-# Bots config with initial settings and dynamic fields
+# Bots configuration
 ai_bots_cfg = {
     "Bot1": {
         "name": "HelperBot",
@@ -45,8 +44,8 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "normal",
         "interval": 3.0,
-        "clicking_active": False,
-        "watching_active": False,
+        "clicking_active": True,   # start active as per request
+        "watching_active": True,   # start active as per request
         "milestones": [10, 20, 50, 100],
     },
     "Bot2": {
@@ -61,8 +60,8 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "turbo",
         "interval": 2.0,
-        "clicking_active": False,
-        "watching_active": False,
+        "clicking_active": True,
+        "watching_active": True,
         "milestones": [10, 25, 60, 120],
     },
     "Bot3": {
@@ -77,8 +76,8 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "stealth",
         "interval": 4.0,
-        "clicking_active": False,
-        "watching_active": False,
+        "clicking_active": True,
+        "watching_active": True,
         "milestones": [5, 15, 40, 90],
     },
     "Bot4": {
@@ -93,8 +92,8 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "boost",
         "interval": 3.5,
-        "clicking_active": False,
-        "watching_active": False,
+        "clicking_active": True,
+        "watching_active": True,
         "milestones": [20, 50, 100, 200],
     },
 }
@@ -104,11 +103,10 @@ proxy_lock = threading.Lock()
 
 LINKS_FILE = "links.json"
 
-# Proxy list (rotate/take random for requests)
 PROXIES = [
     "http://fmjwfjea:2dg9ugb5x8gi@142.111.48.253:7030/",
     "http://fmjwfjea:2dg9ugb5x8gi@198.23.239.134:6540/",
-    "http://fmjwfjea:2dg9ugb5x8gi@45.38.97:6014/",
+    "http://fmjwfjea:2dg9ugb5x8gi@45.38.97.6014/",
     "http://fmjwfjea:2dg9ugb5x8gi@107.172.27:6543/",
     "http://fmjwfjea:2dg9ugb5x8gi@64.137.74:6641/",
     "http://fmjwfjea:2dg9ugb5x8gi@154.203.43:5536/",
@@ -120,7 +118,6 @@ PROXIES = [
 
 proxy_fail_counts = {p:0 for p in PROXIES}
 
-# Default fallback links for ads
 DEFAULT_LINKS = [
     {"id": 1, "network": "Zeydoo A", "url": "https://ldl1.com/link?z=9917741&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
     {"id": 2, "network": "Zeydoo B", "url": "https://sgben.com/link?z=9917747&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
@@ -176,7 +173,6 @@ def fetch_cpc():
         headers = {"User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         resp = requests.get("https://ipv4.webshare.io/", proxies=proxy, headers=headers, timeout=5)
         resp.raise_for_status()
-        # Mock CPC value between 0.05 and 0.2
         return round(0.05 + random.random() * 0.15, 4)
     except Exception as e:
         if proxy_url:
@@ -194,23 +190,18 @@ def smart_timing_multiplier():
 
 def check_achievements(stats, bot):
     new_achievements = []
-    # Check milestone achievements
     for milestone in bot["milestones"][:]:
         if stats["revenue"] >= milestone:
-            achievement = f"💰 Milestone: ${milestone}"
-            new_achievements.append(achievement)
+            new_achievements.append(f"💰 Milestone: ${milestone}")
             bot["milestones"].remove(milestone)
-    # Check total clicks achievement
     if stats["clicks"] >= 100 and "Century Club" not in bot["achievements"]:
         new_achievements.append("🎯 Century Club: 100 clicks")
         bot["achievements"].append("Century Club")
-    # Check impressions achievement
     if stats["imps"] >= 1000 and "Impression Master" not in bot["achievements"]:
         new_achievements.append("👁️ Impression Master: 1000 imps")
         bot["achievements"].append("Impression Master")
     return new_achievements
 
-# Thread safe flags and timers for special modes
 supermode_active = False
 supermode_lock = threading.Lock()
 supermode_end_time = None
@@ -219,7 +210,7 @@ mega_scan_active = False
 mega_scan_lock = threading.Lock()
 mega_scan_end_time = None
 
-def start_supermode(duration_seconds=600):
+def start_supermode(duration_seconds=6000):
     global supermode_active, supermode_end_time
     with supermode_lock:
         supermode_active = True
@@ -247,7 +238,7 @@ def stop_supermode():
                 bot["watching_active"] = False
     logging.info("Supermode deactivated.")
 
-def start_mega_scan(duration_seconds=300):
+def start_mega_scan(duration_seconds=3000):
     global mega_scan_active, mega_scan_end_time
     with mega_scan_lock:
         mega_scan_active = True
@@ -292,7 +283,6 @@ def ai_bot_worker(bot_name):
             new_achievements = check_achievements(stats, bot)
             for ach in new_achievements:
                 logging.info(f"{bot['name']} achieved: {ach}")
-            # Random toggles for added dynamics
             r = random.random()
             if r < 0.03:
                 bot["expensive_mode"] = not bot["expensive_mode"]
@@ -305,7 +295,7 @@ def ai_bot_worker(bot_name):
                 logging.info(f"{bot['name']} toggled stealth_mode to {bot['stealth_mode']}")
             elif r < 0.12:
                 stats["revenue"] += 5.0
-                logging.info(f"{bot['name']} performed a revenue boost of +$5")
+                logging.info(f"{bot['name']} performed a revenue boost +$5")
         time.sleep(bot.get("interval", 3.0) * random.uniform(0.8, 1.2))
 
 @app.route("/stats")
@@ -314,7 +304,7 @@ def stats_api():
         ctr = (stats["clicks"] / stats["imps"] * 100) if stats["imps"] > 0 else 0
         return jsonify(**stats, ctr=round(ctr, 2))
 
-@app.route("/links", methods=["GET","POST"])
+@app.route("/links", methods=["GET", "POST"])
 def links_api():
     if request.method == "GET":
         return jsonify(load_links())
@@ -357,7 +347,7 @@ def command_api():
             stats["revenue"] += 10.0
         return jsonify({"message":"Increased revenue by 10", "revenue": stats["revenue"]})
 
-    if action == "resetuj":
+    if action == "resetuj_statystyki":
         with lock:
             stats.update(imps=0, clicks=0, revenue=0.0, pending=0)
             for bot in ai_bots_cfg.values():
@@ -403,16 +393,16 @@ def command_api():
         return jsonify({"message":"Stopped watching for all bots."})
 
     if action == "aktywuj_supermode":
-        start_supermode(600)  # 10 min
-        return jsonify({"message":"Supermode activated for 600 seconds."})
+        start_supermode(6000)
+        return jsonify({"message":"Supermode activated for 6000 seconds."})
 
     if action == "dezaktywuj_supermode":
         stop_supermode()
         return jsonify({"message":"Supermode deactivated."})
 
     if action == "start_mega_scan":
-        start_mega_scan(300)  # 5 min
-        return jsonify({"message":"Mega scan activated for 300 seconds."})
+        start_mega_scan(3000)
+        return jsonify({"message":"Mega scan activated for 3000 seconds."})
 
     return jsonify({"error":"Unknown command."}), 400
 
@@ -424,7 +414,7 @@ def huggingface_chat():
         return jsonify({"error":"No message provided."}), 400
 
     HUGGINGFACE_URL = "https://api-inference.huggingface.co/models/gpt2"
-    HUGGINGFACE_TOKEN = "hf_your_api_token_here"  # Replace with your real key
+    HUGGINGFACE_TOKEN = "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"  # Replace with your real Huggingface key
     headers = {"Authorization": f"Bearer {HUGGINGFACE_TOKEN}"}
     resp = requests.post(HUGGINGFACE_URL, headers=headers, json={"inputs": message, "options": {"wait_for_model": True}})
     if resp.status_code != 200:
@@ -439,7 +429,7 @@ def huggingface_chat():
     with lock:
         if "aktywuj supermode" in lmsg or "włącz supermode" in lmsg:
             start_supermode(6000)
-            command_resp = "Supermode activated for 600 seconds."
+            command_resp = "Supermode activated for 6000 seconds."
         elif "dezaktywuj supermode" in lmsg or "wyłącz supermode" in lmsg:
             stop_supermode()
             command_resp = "Supermode deactivated."
@@ -466,8 +456,8 @@ def index():
 
 @app.route("/scan", methods=["POST"])
 def scan():
-    start_mega_scan(300)  # 5 minutes
-    return jsonify({"message": "Mega scan activated for 300 seconds."})
+    start_mega_scan(3000)
+    return jsonify({"message": "Mega scan activated for 3000 seconds."})
 
 if __name__ == "__main__":
     logging.info(f"Starting AI Clicker Engine on port {PORT}")
