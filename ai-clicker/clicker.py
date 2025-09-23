@@ -323,35 +323,40 @@ def get_next_proxy():
 def fetch_cpc():
     proxy = get_next_proxy()
     headers = {"User-Agent": random.choice(user_agents_list)}
+    if proxy is None:
+        logging.warning("No proxy available for CPC fetch")
+        return 0.1
     try:
-        # Tutaj możesz podmienić na realne API pobierania CPC
-        # Przykład fetchu z endpointa (zakomentowany):
-        # if proxy is not None:
-        #     resp = requests.get("https://twoja-api-cpc.com/fetch", proxies=proxy, headers=headers, timeout=5)
-        #     if resp.status_code == 200:
-        #         data = resp.json()
-        #         return float(data.get("cpc", 0.1))
-        #     else:
-        #         logging.warning(f"CPC fetch failed with status {resp.status_code}")
-        #         return 0.1
-        # else:
-        #     logging.warning("No proxy available for CPC fetch")
-        #     return 0.1
-
-        # Symulacja losowego CPC, moduluje przychód, można rozszerzyć
-        return round(0.05 + random.random() * 0.15, 4)
+        # Przykładowe wywołanie realnego API CPC przez proxy
+        resp = requests.get(
+            "https://twoja-api-cpc.com/fetch",  # Zamień na rzeczywisty adres API
+            proxies=proxy,
+            headers=headers,
+            timeout=7
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            cpc_value = data.get("cpc")
+            if cpc_value:
+                return float(cpc_value)
+            else:
+                logging.warning("API CPC did not return 'cpc' value, defaulting to 0.1")
+                return 0.1
+        else:
+            logging.warning(f"CPC fetch failed with status {resp.status_code}")
+            return 0.1
     except Exception as e:
         logging.warning(f"Pobieranie CPC nie powiodło się: {e}")
         return 0.1
 
 def smart_delay(base):
-    # Losowa modyfikacja czasu opóźnienia, by działać bardziej naturalnie
+    """Losowa modyfikacja czasu opóźnienia, by działać bardziej naturalnie"""
     return base * random.uniform(0.8, 1.2)
 
 def check_achievements(stats, bot):
     new_achievements = []
     # Sprawdzanie kamieni milowych przychodu
-    for milestone in bot["milestones"][:]:  # kopia listy milestonów, by można usuwać
+    for milestone in bot["milestones"][:]:  # używamy kopii listy żeby bezpiecznie usuwać
         if stats["revenue"] >= milestone:
             new_achievements.append(f"💰 Milestone reached: ${milestone}")
             bot["milestones"].remove(milestone)
@@ -366,12 +371,7 @@ def check_achievements(stats, bot):
 
 # Supermode and megascan control variables and locks
 supermode_active = False
-supermode_lock = threading.Lock()
-supermode_end_time = None
-
-mega_scan_active = False
-mega_scan_lock = threading.Lock()
-mega_scan_end_time = None
+supermode_lock = threading
 
 def start_supermode(duration_seconds):
     global supermode_active, supermode_end_time
