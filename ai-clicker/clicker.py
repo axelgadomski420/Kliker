@@ -10,6 +10,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
+stripe.api_key = "sk_test_51S8ZUk7Vc44kK9xyEOanxQOeTsa2Fs6ob6RbraWMu3ztUSnJEWX3O03tvrYABcVgbU145qMKtjQCcHWYtcAL1vHg003l8t4V4c"
 
 # Inicjalizacja
 load_dotenv()
@@ -17,7 +18,6 @@ app = Flask(__name__)
 CORS(app)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-stripe.api_key = "sk_test_51S8ZUk7Vc44kK9xyEOanxQOeTsa2Fs6ob6RbraWMu3ztUSnJEWX3O03tvrYABcVgbU145qMKtjQCcHWYtcAL1vHg003l8t4V4c"
 
 SOURCE_ID = os.getenv("SOURCE_ID", "SRC_000")
 PORT = int(os.getenv("PORT", "5000"))
