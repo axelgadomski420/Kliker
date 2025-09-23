@@ -167,6 +167,21 @@ LINKS_DEFAULT = [
     {"id": 14, "network": "Ksjsb", "url": "https://92orb.com/link?z=9917785&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
 ]
 
+def load_links():
+    try:
+        with open(LINKS_FILE, "r") as f:
+            links = json.load(f)
+            if not links:
+                raise Exception("Empty links file")
+            return links
+    except Exception:
+        return LINKS_DEFAULT.copy()
+
+def save_links(links):
+    with open(LINKS_FILE, "w") as f:
+        json.dump(links, f, indent=2)
+
+
 PROXIES = [
     "http://fmjwfjea:2dg9ugb5gi@142.111.48.253:7030/",
     "http://fmjwfjea:2dg9ugb5gi@198.23.239.134:6540/",
