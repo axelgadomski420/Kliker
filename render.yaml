@@ -1,16 +1,18 @@
 services:
+  # Serwis NGINX (proxy odwrotne)
   - type: web
     name: ad-mine-nginx
     runtime: docker
-    dockerfilePath: nginx/Dockerfile
+    dockerfilePath: ./nginx/Dockerfile  # Ścieżka względna od korzenia repozytorium
     plan: starter
+    autoDeploy: true
     envVars:
       - key: TARGET_URL
         value: https://httpbin.org/status/200
       - key: CLICK_RATE
         value: "0.20"
       - key: STRIPE_SECRET
-        value: sk_test_…
+        value: sk_test_…  # Upewnij się, że klucze są poprawne!
       - key: STRIPE_PUBLIC
         value: pk_test_…
       - key: HUG_TOKEN
@@ -18,17 +20,45 @@ services:
       - key: VPN_CONFIG_PATH
         value: /vpnbook/PL134.ovpn
       - key: NGINX_URL
-        value: https://<your-service>.onrender.com
+        value: https://<your-service>.onrender.com  # Zastąp <your-service> rzeczywistą nazwą!
 
+  # Worker z Selenium (klikacz)
   - type: worker
     name: ad-mine-clicker
     runtime: docker
-    dockerfilePath: ai-clicker/Dockerfile
+    dockerfilePath: ./ai-clicker/Dockerfile
     plan: starter
+    autoDeploy: true
     envVars:
       - key: CLICK_RATE
         value: "0.20"
       - key: NGINX_URL
+        value: https://<your-service>.onrender.com
+      - key: HUG_TOKEN
+        value: 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
+      - key: DISPLAY  # Wymagane dla Selenium w Dockerze
+        value: ":99"
+      - key: CHROME_BIN  # Ścieżka do Chrome w kontenerze
+        value: /usr/bin/google-chrome
+    # Opcje skalowania (opcjonalnie)
+    numInstances: 1
+    region: frankfurt  # Wybierz region bliżej Polski dla lepszej wydajności
+
+  # Opcjonalny serwis API (Flask)
+  - type: web
+    name: ad-mine-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile  # Jeśli masz oddzielny serwis API
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: STRIPE_SECRET
+        value: sk_test_…
+      - key: STRIPE_PUBLIC
+        value: pk_test_…
+      - key: HUG_TOKEN
+        value: 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
+
         value: https://<your-service>.onrender.com
       - key: STRIPE_SECRET
         value: sk_test_…
