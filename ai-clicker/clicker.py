@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 PORT = int(os.getenv("PORT", "5000"))
@@ -26,7 +27,6 @@ stats = {
     "last_update": datetime.now().isoformat()
 }
 
-# AI bots configurations with diverse modes
 ai_bots_cfg = {
     "Bot1": {
         "name": "HelperBot",
@@ -40,6 +40,9 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "normal",
         "interval": 3.0,
+        "clicking_active": False,
+        "watching_active": False,
+        "milestones": [10, 20, 50, 100],
     },
     "Bot2": {
         "name": "TurboBot",
@@ -53,6 +56,9 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "turbo",
         "interval": 2.0,
+        "clicking_active": False,
+        "watching_active": False,
+        "milestones": [10, 25, 60, 120],
     },
     "Bot3": {
         "name": "StealthBot",
@@ -66,6 +72,9 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "stealth",
         "interval": 4.0,
+        "clicking_active": False,
+        "watching_active": False,
+        "milestones": [5, 15, 40, 90],
     },
     "Bot4": {
         "name": "BoosterBot",
@@ -79,6 +88,9 @@ ai_bots_cfg = {
         "achievements": [],
         "mode": "boost",
         "interval": 3.5,
+        "clicking_active": False,
+        "watching_active": False,
+        "milestones": [20, 50, 100, 200],
     },
 }
 
@@ -100,6 +112,7 @@ PROXIES = [
 ]
 
 proxy_fail_counts = {p: 0 for p in PROXIES}
+
 def load_links():
     try:
         with open(LINKS_FILE) as f:
@@ -213,11 +226,11 @@ def links_api():
         return jsonify(load_links())
 
     data = request.get_json()
-
-    if not data or "network" not in data or "url" not in data:
-        links = load_links()
+    links = load_links()
+    if not data or "network" not in data or "url" not in 
+        pass
     else:
-        new_id = max([l["id"] for l in links], default=0) + 1
+        new_id = max((l["id"] for l in links), default=0) + 1
         new_link = {
             "id": new_id,
             "network": data["network"],
@@ -228,6 +241,7 @@ def links_api():
         save_links(links)
         logging.info(f"Dodano link: {new_link}")
         return jsonify(new_link), 201
+    return jsonify(links)
 
 @app.route("/command", methods=["POST"])
 def command_api():
@@ -310,6 +324,7 @@ def command_api():
 
         else:
             return jsonify({"error": "Nieznana komenda"}), 400
+
 @app.route("/scan", methods=["POST"])
 def manual_scan():
     with lock:
