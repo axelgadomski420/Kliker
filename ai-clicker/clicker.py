@@ -17,7 +17,8 @@ app = Flask(__name__)
 CORS(app)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = "sk_test_51S8ZUk7Vc44kK9xyEOanxQOeTsa2Fs6ob6RbraWMu3ztUSnJEWX3O03tvrYABcVgbU145qMKtjQCcHWYtcAL1vHg003l8t4V4c"
+
 SOURCE_ID = os.getenv("SOURCE_ID", "SRC_000")
 PORT = int(os.getenv("PORT", "5000"))
 DEFAULT_CLICK_RATE = float(os.getenv("CLICK_RATE", "0.20"))
