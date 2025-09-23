@@ -7,7 +7,7 @@
     * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg,#667eea,#764ba2);
+      background: linear-gradient(135deg,#28a745,#19692c); /* zielony gradient */
       color: #fff;
       margin: 0; padding: 20px;
     }
@@ -32,7 +32,7 @@
     .card:hover { transform: translateY(-5px); }
     .card h2 {
       margin: 0 0 10px; font-size: 2.5em;
-      background: linear-gradient(45deg,#FF6B6B,#4ECDC4);
+      background: linear-gradient(45deg,#28a745,#8fce5a); /* zielone gradienty */
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -59,7 +59,7 @@
     button {
       padding: 12px 25px; border: none;
       border-radius: 8px;
-      background: linear-gradient(45deg,#FF6B6B,#4ECDC4);
+      background: linear-gradient(45deg,#28a745,#8fce5a);
       color: #fff; font-size: 1em;
       cursor: pointer; transition: all 0.3s;
       margin: 5px 0;
@@ -192,11 +192,11 @@
     const ctx = document.getElementById('revenueChart').getContext('2d');
     chart = new Chart(ctx, {
       type: 'line',
-       {
+      data: {
         labels: [],
         datasets: [{
           label: 'Revenue',
-           [],
+          data: [],
           borderColor: 'rgb(75,192,192)',
           backgroundColor: 'rgba(75,192,192,0.1)',
           tension: 0.4
