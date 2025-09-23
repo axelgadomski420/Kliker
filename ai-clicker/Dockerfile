@@ -1,22 +1,33 @@
+# Używamy oficjalnego obrazu OpenResty (NGINX + Lua)
 FROM openresty/openresty:alpine
 
-RUN apk add --no-cache curl
-RUN mkdir -p /usr/share/nginx/html /var/log/nginx
+# Instalacja niezbędnych pakietów (curl, openvpn, certyfikaty)
+RUN apk add --no-cache \\
+    curl \\
+    openvpn \\
+    ca-certificates \\
+    && mkdir -p /usr/share/nginx/html /var/log/nginx /vpnbook
 
-# VPN files
-COPY ../vpnbook/ /vpnbook/
+# Kopiowanie plików VPN
+COPY --chown=nginx:nginx ../vpnbook/ /vpnbook/
 
-# Nginx config
-COPY nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY nginx/conf.d/    /usr/local/openresty/nginx/conf/conf.d/
+# Konfiguracja NGINX
+COPY --chown=nginx:nginx nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY --chown=nginx:nginx nginx/conf.d/    /usr/local/openresty/nginx/conf/conf.d/
 
-# Frontend
-COPY ../web/          /usr/share/nginx/html/
+# Frontend (statyczne pliki)
+COPY --chown=nginx:nginx ../web/          /usr/share/nginx/html/
 
-RUN chmod -R 755 /usr/share/nginx/html /vpnbook
+# Ustawienia uprawnień
+RUN chmod -R 755 /usr/share/nginx/html /vpnbook && \\
+    chown -R nginx:nginx /usr/share/nginx/html /vpnbook
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -f http://localhost/stats || exit 1
+# Healthcheck (sprawdza dostępność /stats)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\
+    CMD curl -f http://localhost/stats || exit 1
 
+# Ekspozycja portu 80 (HTTP)
 EXPOSE 80
-CMD ["openresty","-g","daemon off;"]
+
+# Uruchomienie OpenResty w trybie foreground
+CMD ["openresty", "-g", "daemon off;"]
