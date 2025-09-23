@@ -47,6 +47,9 @@ PROXIES = [
     "http://192.99.56.244:80",
     "http://45.77.24.239:8080"
 ]
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('favicon.ico')
 
 # ─── Helpery ───────────────────────────────────────────────────────────────
 def load_links():
