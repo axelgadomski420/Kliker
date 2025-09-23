@@ -218,9 +218,9 @@ def generate_unique_id(num_bytes=8):
 def proxy_health_check(proxy_url):
     try:
         headers = {"User-Agent": random.choice(user_agents_list)}
-        # Zamiana sprawdzaniego endpointu na bardziej stabilny i wydłużony timeout
         resp = requests.get("https://www.google.com", proxies={"http": proxy_url, "https": proxy_url}, headers=headers, timeout=5)
-        if resp.status_code == 200:
+        # Uznać za działające także status 204 (No Content)
+        if resp.status_code in [200, 204, 302, 301]:
             return True
         else:
             logging.warning(f"Proxy {proxy_url} zwróciło status {resp.status_code}")
