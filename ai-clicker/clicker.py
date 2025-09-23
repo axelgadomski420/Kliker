@@ -113,12 +113,36 @@ PROXIES = [
 
 proxy_fail_counts = {p: 0 for p in PROXIES}
 
+DEFAULT_LINKS = [
+    {"id": 1, "network": "Zeydoo A", "url": "https://ldl1.com/link?z=9917741&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 2, "network": "Zeydoo B", "url": "https://sgben.com/link?z=9917747&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 3, "network": "Zeydoo C", "url": "https://92orb.com/link?z=9917751&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 4, "network": "Zeydoo D", "url": "https://92orb.com/link?z=9917754&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 5, "network": "Zeydoo E", "url": "https://ldl1.com/link?z=9917757&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 6, "network": "Zeydoo F", "url": "https://ovret.com/link?z=9917758&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 7, "network": "Zeydoo G", "url": "https://92orb.com/link?z=9917759&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 8, "network": "Zeydoo H", "url": "https://92orb.com/link?z=9917766&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 9, "network": "Zeydoo J", "url": "https://134l.com/link?z=9917767&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 10, "network": "Hshhsh", "url": "https://ldl1.com/link?z=9917775&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 11, "network": "Jsjsjsj", "url": "https://sgben.com/link?z=9917779&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 12, "network": "Hsh", "url": "https://92orb.com/link?z=9917780&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 13, "network": "Ldldkj", "url": "https://ldl1.com/link?z=9917784&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 14, "network": "Ksjsbb", "url": "https://92orb.com/link?z=9917785&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+]
+
+
 def load_links():
     try:
         with open(LINKS_FILE) as f:
-            return json.load(f)
+            links = json.load(f)
+            if not links:
+                return DEFAULT_LINKS.copy()
+            return links
     except FileNotFoundError:
-        return []
+        return DEFAULT_LINKS.copy()
+    except json.JSONDecodeError:
+        logging.warning("Plik links.json jest uszkodzony, używam domyślnej listy linków")
+        return DEFAULT_LINKS.copy()
 
 def save_links(links):
     with open(LINKS_FILE, "w") as f:
