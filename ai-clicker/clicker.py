@@ -5,11 +5,11 @@ import random
 import threading
 import requests
 import logging
+import re
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
-import re
 
 load_dotenv()
 app = Flask(__name__)
@@ -130,7 +130,6 @@ DEFAULT_LINKS = [
     {"id": 14, "network": "Ksjsbb", "url": "https://92orb.com/link?z=9917785&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
 ]
 
-
 def load_links():
     try:
         with open(LINKS_FILE) as f:
@@ -200,14 +199,72 @@ def check_achievements(stats_dict, ai_cfg_bot):
         ai_cfg_bot["achievements"].append("Impression Master")
     return new
 
+supermode_active = False
+supermode_lock = threading.Lock()
+supermode_end_time = None
+
+mega_scan_active = False
+mega_scan_lock = threading.Lock()
+mega_scan_end_time = None
+
+def start_supermode(duration_seconds=6000):
+    global supermode_active, supermode_end_time
+    with supermode_lock:
+        supermode_active = True
+        supermode_end_time = time.time() + duration_seconds
+        with lock:
+            for bot in ai_bots_cfg.values():
+                bot["expensive_mode"] = True
+                bot["turbo_mode"] = True
+                bot["stealth_mode"] = True
+                bot["click_rate"] = 4.0
+                bot["clicking_active"] = True
+                bot["watching_active"] = True
+    logging.info(f"Supermode activated for {duration_seconds} seconds")
+
+def stop_supermode():
+    global supermode_active
+    with supermode_lock:
+        supermode_active = False
+        with lock:
+            for bot in ai_bots_cfg.values():
+                bot["expensive_mode"] = False
+                bot["turbo_mode"] = False
+                bot["stealth_mode"] = False
+                bot["clicking_active"] = False
+                bot["watching_active"] = False
+    logging.info("Supermode deactivated")
+
+def start_mega_scan(duration_seconds=3000):
+    global mega_scan_active, mega_scan_end_time
+    with mega_scan_lock:
+        mega_scan_active = True
+        mega_scan_end_time = time.time() + duration_seconds
+    logging.info(f"Mega scan activated for {duration_seconds} seconds")
+
 def ai_bot_worker(bot_name):
     bot_cfg = ai_bots_cfg[bot_name]
     logging.info(f"{bot_cfg['name']} started")
+    global supermode_active, supermode_end_time
+    global mega_scan_active, mega_scan_end_time
     while True:
+        with supermode_lock:
+            if supermode_active and time.time() > supermode_end_time:
+                logging.info("Supermode expired - stopping")
+                stop_supermode()
+        with mega_scan_lock:
+            if mega_scan_active and time.time() > mega_scan_end_time:
+                logging.info("Mega scan expired - stopping")
+                mega_scan_active = False
+            mega_effect = mega_scan_active
         cpc = fetch_cpc()
         mult = smart_timing_multiplier()
         with lock:
             increment = 1 if random.random() < bot_cfg["click_rate"] * mult else 0
+            if mega_effect:
+                increment = max(increment,1)
+                stats["imps"] += 3
+                stats["revenue"] += 0.1
             stats["imps"] += 1
             stats["clicks"] += increment
             stats["revenue"] += increment * cpc
@@ -248,7 +305,6 @@ def stats_api():
 def links_api():
     if request.method == "GET":
         return jsonify(load_links())
-
     data = request.get_json()
     links = load_links()
     if not data or "network" not in data or "url" not in 
@@ -276,28 +332,23 @@ def command_api():
             for bot in ai_bots_cfg.values():
                 bot["expensive_mode"] = not bot["expensive_mode"]
             return jsonify({"message": "Przełączono tryb drogi dla wszystkich botów"})
-
         elif action == "przelacz_turbo":
             for bot in ai_bots_cfg.values():
                 bot["turbo_mode"] = not bot["turbo_mode"]
             return jsonify({"message": "Przełączono tryb turbo dla wszystkich botów"})
-
         elif action == "przelacz_ukryty":
             for bot in ai_bots_cfg.values():
                 bot["stealth_mode"] = not bot["stealth_mode"]
             return jsonify({"message": "Przełączono tryb ukryty dla wszystkich botów"})
-
         elif action == "zwieksz_przychod":
             stats["revenue"] += 10.0
             return jsonify({"revenue": stats["revenue"], "message": "Zwiększono przychód o 10"})
-
         elif action == "resetuj_statystyki":
             stats.update({"imps": 0, "clicks": 0, "revenue": 0.0, "pending": 0})
             for bot in ai_bots_cfg.values():
                 bot["history"].clear()
                 bot["achievements"].clear()
             return jsonify({"message": "Zresetowano statystyki i boty", **stats})
-
         elif action == "ustaw_click_rate":
             try:
                 v = float(data.get("value", 1.0))
@@ -306,46 +357,31 @@ def command_api():
                 return jsonify({"message": f"Ustawiono click rate na {v} sekund dla wszystkich botów"})
             except (ValueError, TypeError):
                 return jsonify({"error": "Nieprawidłowa wartość dla click rate"}), 400
-
         elif action == "start_klikanie":
             for bot in ai_bots_cfg.values():
                 bot["clicking_active"] = True
             return jsonify({"message": "Rozpoczęto automatyczne klikanie dla wszystkich botów"})
-
         elif action == "stop_klikanie":
             for bot in ai_bots_cfg.values():
                 bot["clicking_active"] = False
             return jsonify({"message": "Zatrzymano automatyczne klikanie dla wszystkich botów"})
-
         elif action == "start_oglądanie":
             for bot in ai_bots_cfg.values():
                 bot["watching_active"] = True
             return jsonify({"message": "Rozpoczęto automatyczne oglądanie dla wszystkich botów"})
-
         elif action == "stop_oglądanie":
             for bot in ai_bots_cfg.values():
                 bot["watching_active"] = False
             return jsonify({"message": "Zatrzymano automatyczne oglądanie dla wszystkich botów"})
-
         elif action == "aktywuj_supermode":
-            for bot in ai_bots_cfg.values():
-                bot["expensive_mode"] = True
-                bot["turbo_mode"] = True
-                bot["stealth_mode"] = True
-                bot["click_rate"] = 4.0
-                bot["clicking_active"] = True
-                bot["watching_active"] = True
-            return jsonify({"message": "Supermode aktywowany: wszystkie tryby włączone i automatyczne działanie rozpoczęte"})
-
+            start_supermode(6000)
+            return jsonify({"message": "Supermode aktywowany na 6000 sekund"})
         elif action == "dezaktywuj_supermode":
-            for bot in ai_bots_cfg.values():
-                bot["expensive_mode"] = False
-                bot["turbo_mode"] = False
-                bot["stealth_mode"] = False
-                bot["clicking_active"] = False
-                bot["watching_active"] = False
-            return jsonify({"message": "Supermode dezaktywowany: wszystkie tryby wyłączone i działania zatrzymane"})
-
+            stop_supermode()
+            return jsonify({"message": "Supermode dezaktywowany"})
+        elif action == "start_mega_scan":
+            start_mega_scan(3000)
+            return jsonify({"message": "Mega scan aktywowany na 3000 sekund"})
         else:
             return jsonify({"error": "Nieznana komenda"}), 400
 
@@ -375,21 +411,10 @@ def huggingface_chat():
     command_response = ""
     with lock:
         if "aktywuj supermode" in response_lower or "włącz supermode" in response_lower:
-            for bot in ai_bots_cfg.values():
-                bot["expensive_mode"] = True
-                bot["turbo_mode"] = True
-                bot["stealth_mode"] = True
-                bot["click_rate"] = 4.0
-                bot["clicking_active"] = True
-                bot["watching_active"] = True
+            start_supermode(6000)
             command_response = "Supermode aktywowany."
         elif "dezaktywuj supermode" in response_lower or "wyłącz supermode" in response_lower:
-            for bot in ai_bots_cfg.values():
-                bot["expensive_mode"] = False
-                bot["turbo_mode"] = False
-                bot["stealth_mode"] = False
-                bot["clicking_active"] = False
-                bot["watching_active"] = False
+            stop_supermode()
             command_response = "Supermode dezaktywowany."
         elif "ustaw click rate" in response_lower:
             m = re.search(r"(\d+)", response_lower)
@@ -417,12 +442,9 @@ def index():
 
 @app.route("/scan", methods=["POST"])
 def manual_scan():
-    with lock:
-        stats["imps"] += 3
-        stats["clicks"] += 1
-        stats["revenue"] += 0.1
-        stats["last_update"] = datetime.now().isoformat()
-    return jsonify(stats)
+    start_mega_scan(30)
+    return jsonify({"message": "Mega scan aktywowany na 30 sekund"})
+
 
 if __name__ == "__main__":
     logging.info("🚀 Starting AI Clicker Engine with 4 AI bots...")
