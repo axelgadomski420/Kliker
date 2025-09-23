@@ -257,7 +257,6 @@ def command_api():
                 bot["achievements"].clear()
             return jsonify({"message": "Stats and bots reset", **stats})
     return jsonify({"error": "unknown command"}), 400
-
 @app.route("/scan", methods=["POST"])
 def manual_scan():
     with lock:
