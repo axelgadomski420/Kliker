@@ -214,7 +214,7 @@ def links_api():
 
     data = request.get_json()
 
-    if not data or "network" not in data or "url" not in 
+    if not data or "network" not in data or "url" not in data:
         links = load_links()
     else:
         new_id = max([l["id"] for l in links], default=0) + 1
