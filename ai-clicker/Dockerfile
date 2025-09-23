@@ -1,33 +1,45 @@
-# Używamy oficjalnego obrazu OpenResty (NGINX + Lua)
-FROM openresty/openresty:alpine
+# Start with a base image that includes Python
+FROM python:3.9-alpine
 
-# Instalacja niezbędnych pakietów (curl, openvpn, certyfikaty)
+# Install system dependencies
 RUN apk add --no-cache \\
     curl \\
     openvpn \\
     ca-certificates \\
+    gcc \\
+    python3-dev \\
+    musl-dev \\
     && mkdir -p /usr/share/nginx/html /var/log/nginx /vpnbook
 
-# Kopiowanie plików VPN
+# Install Python dependencies
+RUN pip install --no-cache-dir numpy opencv-python pyautogui
+
+# Copy your Python script
+COPY clicker.py /app/clicker.py
+
+# Copy VPN files
 COPY --chown=nginx:nginx ../vpnbook/ /vpnbook/
 
-# Konfiguracja NGINX
+# Install OpenResty (NGINX + Lua) if still needed
+RUN apk add --no-cache openresty
+
+# Configure NGINX
 COPY --chown=nginx:nginx nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY --chown=nginx:nginx nginx/conf.d/    /usr/local/openresty/nginx/conf/conf.d/
 
-# Frontend (statyczne pliki)
+# Frontend (static files)
 COPY --chown=nginx:nginx ../web/          /usr/share/nginx/html/
 
-# Ustawienia uprawnień
+# Set permissions
 RUN chmod -R 755 /usr/share/nginx/html /vpnbook && \\
     chown -R nginx:nginx /usr/share/nginx/html /vpnbook
 
-# Healthcheck (sprawdza dostępność /stats)
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\
     CMD curl -f http://localhost/stats || exit 1
 
-# Ekspozycja portu 80 (HTTP)
+# Expose port 80
 EXPOSE 80
 
-# Uruchomienie OpenResty w trybie foreground
-CMD ["openresty", "-g", "daemon off;"]
+# Command to run both your Python script and OpenResty
+CMD sh -c "python /app/clicker.py & openresty -g 'daemon off;'"
