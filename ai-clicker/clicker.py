@@ -333,21 +333,27 @@ def api_stats():
         ctr = (stats["clicks"] / stats["imps"] * 100) if stats["imps"] > 0 else 0
         return jsonify({**stats, "ctr": round(ctr, 2)})
 
-@app.route("/links", methods=["GET","POST"])
+@app.route("/links", methods=["GET", "POST"])
 def api_links():
     if request.method == "GET":
         return jsonify(load_links())
+
     data = request.get_json()
-    if not data or "network" not in data or "url" not in 
-        return jsonify({"error":"Invalid data"}), 400
+
+    # Poprawiony warunek: dodane 'data' po "url" not in
+    if not data or "network" not in data or "url" not in data:
+        return jsonify({"error": "Missing required fields: 'network' or 'url'"}), 400
+
     links = load_links()
-    new_id = max([l["id"] for l in links], default=0) + 1
+    new_id = max([l["id"] for l in links], default=0) + 1  # Zabezpieczenie przed pustą listą
+
     new_link = {
         "id": new_id,
         "network": data["network"],
         "url": data["url"],
         "weight": 1.0
     }
+
     links.append(new_link)
     save_links(links)
     return jsonify(new_link), 201
