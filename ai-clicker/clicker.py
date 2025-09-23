@@ -199,6 +199,33 @@ def links_api():
     }
     links.append(new_link)
     save_links(links)
+    logging.info(f"Dodano link: {new_link}")
+    return jsonify(new_link), 201
+
+    links = load_links()
+    new_id = max([l["id"] for l in links], default=0) + 1
+    new_link = {
+        "id": new_id,
+        "network": data["network"],
+        "url": data["url"],
+        "weight": 1.0
+    }
+    links.append(new_link)
+    save_links(links)
+    logging.info(f"Dodano link: {new_link}")
+    return jsonify(new_link), 201
+
+
+    links = load_links()
+    new_id = max([l["id"] for l in links], default=0) + 1
+    new_link = {
+        "id": new_id,
+        "network": data["network"],
+        "url": data["url"],
+        "weight": 1.0
+    }
+    links.append(new_link)
+    save_links(links)
     logging.info(f"Added link: {new_link}")
     return jsonify(new_link), 201
 
