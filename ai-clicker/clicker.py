@@ -553,15 +553,60 @@ def api_command():
 
 @app.route("/huggingface_chat", methods=["POST"])
 def api_huggingface_chat():
+    # Sprawdzenie poprawności danych wejściowych
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
     data = request.get_json()
 
-    # Poprawiony warunek
-    if not data or "message" not in 
-        return jsonify({"error": "Missing message"}), 400
+    # Pełna walidacja danych wejściowych
+    if not data or "message" not in data or not isinstance(data["message"], str):
+        return jsonify({"error": "Missing or invalid message"}), 400
 
-    message = data["message"]
+    message = data["message"].strip()
+    if not message:
+        return jsonify({"error": "Message cannot be empty"}), 400
 
-    token = os.getenv("HUGGINGFACE_API_KEY", "")
+    # Pobranie klucza API z zmiennych środowiskowych
+    token = os.getenv("HUGGINGFACE_API_KEY")
+    if not token:
+        return jsonify({"error": "HuggingFace API key not configured"}), 500
+
+    try:
+        # Przykładowe wywołanie API (dostosuj do swoich potrzeb)
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "inputs": message,
+            "options": {"wait_for_model": True}
+        }
+
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill",
+            headers=headers,
+            json=payload
+        )
+        response.raise_for_status()
+
+        return jsonify({
+            "response": response.json(),
+            "status": "success"
+        })
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            "error": f"HuggingFace API error: {str(e)}",
+            "status": "error"
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "error": f"Internal server error: {str(e)}",
+            "status": "error"
+        }), 500
+
     if not token:
         return jsonify({"error": "Missing Huggingface API key"}), 500
 
