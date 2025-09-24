@@ -22,40 +22,329 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
-# Inicjalizacja Flask - JEDNOKROTNA
-app = Flask(__name__)
-CORS(app)
-sock = Sock(app)
-load_dotenv()
+# === Utility functions ===
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+def generate_unique_id(num_bytes=8) -> str:
+    return secrets.token_hex(num_bytes)
 
-lock = threading.Lock()
-proxy_lock = threading.Lock()
+def random_viewport():
+    sizes = [
+        (1920, 1080),
+        (1366, 768),
+        (1440, 900),
+        (1536, 864),
+        (1280, 720),
+        (1600, 900),
+    ]
+    return random.choice(sizes)
 
-PORT = int(os.getenv("PORT", "5000"))
+def get_random_user_agent() -> str:
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/604.1"
+    ]
+    return random.choice(user_agents)
 
-# Global stats
-stats = {
-    "imps": 0,
-    "clicks": 0,
-    "revenue": 0.0,
-    "pending": 0,
-    "last_update": datetime.now().isoformat()
-}
+# === Stealth Selenium driver with advanced fingerprint mutation ===
 
-# User agents list to rotate
-user_agents_list = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-    "Mozilla/5.0 (Linux; Android 10; SM-G975F)",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2 like Mac OS X)"
+def init_stealth_driver(proxy: str = None) -> webdriver.Chrome:
+    options = Options()
+    user_agent = get_random_user_agent()
+    options.add_argument(f'user-agent={user_agent}')
+    width, height = random_viewport()
+    options.add_argument(f"--window-size={width},{height}")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    if proxy:
+        options.add_argument(f'--proxy-server={proxy}')
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+        'source': '''
+            Object.defineProperty(navigator, 'webdriver', {get: () => false});
+            Object.defineProperty(navigator, 'languages', {get: () => ['pl-PL', 'pl']});
+            Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
+            window.chrome = { runtime: {} };
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (parameters) => (
+                parameters.name === 'notifications' 
+                    ? Promise.resolve({ state: Notification.permission })
+                    : originalQuery(parameters)
+            );
+        '''
+    })
+    return driver
+
+# === Human-like interactions ===
+
+def human_like_mouse_movement(driver: webdriver.Chrome):
+    action = ActionChains(driver)
+    steps = random.randint(15, 40)
+    for _ in range(steps):
+        try:
+            x_offset = random.randint(-300, 300)
+            y_offset = random.randint(-200, 200)
+            action.move_by_offset(x_offset, y_offset).perform()
+            time.sleep(random.uniform(0.1, 0.5))
+        except Exception:
+            pass
+
+def human_like_scrolling(driver: webdriver.Chrome):
+    scrolls = random.randint(2, 6)
+    for _ in range(scrolls):
+        dist = random.randint(100, 500)
+        driver.execute_script(f"window.scrollBy(0, {dist});")
+        time.sleep(random.uniform(0.5, 2.0))
+        driver.execute_script(f"window.scrollBy(0, -{dist // 2});")
+        time.sleep(random.uniform(0.3, 1.0))
+
+def human_like_link_click(driver: webdriver.Chrome):
+    try:
+        links = driver.find_elements(By.TAG_NAME, "a")
+        visible_links = [l for l in links if l.is_displayed() and l.is_enabled()]
+        if visible_links:
+            choice = random.choice(visible_links)
+            action = ActionChains(driver)
+            action.move_to_element(choice).pause(random.uniform(0.3, 1.0)).click().perform()
+            time.sleep(random.uniform(2, 4))
+    except Exception:
+        pass
+
+def simulate_human_behavior(driver: webdriver.Chrome):
+    human_like_mouse_movement(driver)
+    human_like_scrolling(driver)
+    human_like_link_click(driver)
+
+# === CAPTCHA detection ===
+
+def detect_captcha(driver: webdriver.Chrome) -> bool:
+    page_source = driver.page_source.lower()
+    if "detected unusual traffic" in page_source or "captcha" in page_source:
+        return True
+    return False
+
+def solve_captcha_placeholder():
+    print("CAPTCHA detected. Please implement solving mechanism here.")
+
+# === Core visiting logic ===
+
+def visit_url(url: str, proxy: str = None):
+    print(f"Starting session for URL: {url} with proxy: {proxy}")
+    driver = init_stealth_driver(proxy)
+    try:
+        driver.get("https://www.google.com")
+        time.sleep(random.uniform(3, 7))
+        simulate_human_behavior(driver)
+        driver.get(url)
+        time.sleep(random.uniform(6, 15))
+
+        if detect_captcha(driver):
+            solve_captcha_placeholder()
+
+        simulate_human_behavior(driver)
+        print(f"Finished visiting {url}")
+    except Exception as e:
+        print(f"Error during visiting {url}: {e}")
+    finally:
+        driver.quit()
+
+# === Proxy Pool Manager for distributed proxy usage ===
+
+class ProxyPool:
+    def __init__(self, proxies: list):
+        self.proxies = proxies
+        self.lock = threading.Lock()
+        self.index = 0
+
+    def get_next_proxy(self) -> str:
+        with self.lock:
+            if not self.proxies:
+                return None
+            proxy = self.proxies[self.index % len(self.proxies)]
+            self.index += 1
+            return proxy
+
+# === Session runner ===
+
+def run_affiliate_browsing_session(affiliate_links: list, proxy_pool: ProxyPool = None):
+    random.shuffle(affiliate_links)
+    for url in affiliate_links:
+        proxy = proxy_pool.get_next_proxy() if proxy_pool else None
+        visit_url(url, proxy)
+        time.sleep(random.uniform(20, 60))
+
+# === Generate affiliate links with dynamic IDs ===
+
+def generate_affiliate_links() -> list:
+    source_id = generate_unique_id(6)
+    click_id = generate_unique_id(6)
+    base_links = [
+        "https://webep1.com/go/90c8eb2348",
+        "https://webep1.com/go/d12cae1d48",
+        "https://webep1.com/go/9d4a423448",
+        "https://g0st.com/4/9917715",
+    ]
+    return [f"{link}?var={source_id}&ymid={click_id}" if "webep1" in link else f"{link}?var={source_id}" for link in base_links]
+
+# === Proxy and links management ===
+
+LINKS_FILE = "links.json"
+LINKS_DEFAULT = [
+    {"id": 1, "network": "Zeydoo A", "url": "https://ldl1.com/link?z=9917741&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 2, "network": "Zeydoo B", "url": "https://sgben.com/link?z=9917747&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 3, "network": "Zeydoo C", "url": "https://92orb.com/link?z=9917751&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 4, "network": "Zeydoo D", "url": "https://92orb.com/link?z=9917754&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 5, "network": "Zeydoo E", "url": "https://ldl1.com/link?z=9917757&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 6, "network": "Zeydoo F", "url": "https://ovret.com/link?z=9917758&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 7, "network": "Zeydoo G", "url": "https://92orb.com/link?z=9917759&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 8, "network": "Zeydoo H", "url": "https://92orb.com/link?z=9917766&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 9, "network": "Zeydoo J", "url": "https://134l.com/link?z=9917767&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 10, "network": "Hshsh", "url": "https://ldl1.com/link?z=9917775&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 11, "network": "Jsjsj", "url": "https://sgben.com/link?z=9917779&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 12, "network": "Hsh", "url": "https://92orb.com/link?z=9917780&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 13, "network": "Ldld", "url": "https://ldl1.com/link?z=9917784&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
+    {"id": 14, "network": "Ksjsb", "url": "https://92orb.com/link?z=9917785&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
 ]
 
-# AI bots config with various modes and parameters
+PROXIES = [
+    "http://78.9.234.55:8080",
+    "http://151.115.55.121:8080",
+    "http://217.142.4.601:8080",
+    "http://232.205.78.9:8080",
+    "http://234.55.78.9:8080",
+    "http://85.193.197.137:8081",
+    "http://37.26.192.4:8081",
+    "http://83.175.157.49:3128",
+    "http://78.9.232.205:8080",
+    "http://78.9.234.56:8080",
+    "http://151.115.55.122:8080",
+    "http://217.142.4.602:8080",
+    "http://232.205.78.10:8080",
+    "http://234.55.78.10:8080",
+    "http://85.193.197.138:8081",
+    "http://37.26.192.5:8081",
+    "http://83.175.157.50:3128",
+    # Add all proxies as originally defined, including authenticated ones
+    "http://fmjwfjea:2dg9ugb5gi@142.111.48.253:7030/",
+    "http://fmjwfjea:2dg9ugb5gi@198.23.239.134:6540/",
+    "http://fmjwfjea:2dg9ugb5gi@45.38.97.14:6014/",
+    "http://fmjwfjea:2dg9ugb5gi@107.172.27.3:6543/",
+    "http://fmjwfjea:2dg9ugb5gi@64.137.74.30:6641/",
+    "http://fmjwfjea:2dg9ugb5gi@154.203.43.7:5536/",
+    "http://fmjwfjea:2dg9ugb5gi@84.247.125.21:6095/",
+    "http://fmjwfjea:2dg9ugb5gi@216.159.7.3:6837/",
+    "http://fmjwfjea:2dg9ugb5gi@142.67.45.12:5611/",
+    "http://fmjwfjea:2dg9ugb5gi@142.128.95.8:6593/",
+]
+
+proxy_health_cache = {}
+proxy_fail_counts = {}
+proxy_index = 0
+proxy_lock = threading.Lock()
+
+def load_links():
+    try:
+        with open(LINKS_FILE, "r") as f:
+            links = json.load(f)
+            if not links:
+                raise Exception("Empty links file")
+            return links
+    except Exception as e:
+        logging.warning(f"load_links fallback to default due to: {e}")
+        return LINKS_DEFAULT.copy()
+
+def save_links(links):
+    with open(LINKS_FILE, "w") as f:
+        json.dump(links, f, indent=2)
+
+def proxy_health_check(proxy_url):
+    try:
+        headers = {"User-Agent": random.choice(user_agents_list)}
+        resp = requests.get("https://www.google.com", proxies={"http": proxy_url, "https": proxy_url}, headers=headers, timeout=5)
+        return resp.status_code in [200, 204, 302, 301]
+    except Exception as e:
+        logging.warning(f"Proxy error {proxy_url}: {e}")
+        return False
+
+def get_next_proxy():
+    global proxy_index
+    with proxy_lock:
+        for p in PROXIES:
+            if p not in proxy_fail_counts:
+                proxy_fail_counts[p] = 0
+
+        alive_proxies = []
+        for proxy in PROXIES[:]:
+            if proxy in proxy_health_cache:
+                if proxy_health_cache[proxy]:
+                    alive_proxies.append(proxy)
+                else:
+                    proxy_fail_counts[proxy] += 1
+                    if proxy_fail_counts[proxy] >= 10:
+                        logging.warning(f"Removing proxy {proxy} after {proxy_fail_counts[proxy]} failures")
+                        PROXIES.remove(proxy)
+                        proxy_fail_counts.pop(proxy, None)
+                        proxy_health_cache.pop(proxy, None)
+            else:
+                if proxy_health_check(proxy):
+                    proxy_health_cache[proxy] = True
+                    alive_proxies.append(proxy)
+                    proxy_fail_counts[proxy] = 0
+                else:
+                    proxy_health_cache[proxy] = False
+                    proxy_fail_counts[proxy] = proxy_fail_counts.get(proxy, 0) + 1
+
+        if not alive_proxies:
+            logging.error("No available proxies")
+            return None
+
+        chosen = alive_proxies[proxy_index % len(alive_proxies)]
+        proxy_index += 1
+        return {"http": chosen, "https": chosen}
+
+def fetch_cpc():
+    proxy = get_next_proxy()
+    headers = {"User-Agent": random.choice(user_agents_list)}
+    if proxy is None:
+        logging.warning("No proxy available for CPC fetch")
+        return 0.1
+    try:
+        resp = requests.get("https://twoja-api-cpc.com/fetch", proxies=proxy, headers=headers, timeout=7)
+        if resp.status_code == 200:
+            data = resp.json()
+            return float(data.get("cpc", 0.1))
+        else:
+            logging.warning(f"CPC fetch failed with status {resp.status_code}")
+            return 0.1
+    except Exception as e:
+        logging.warning(f"CPC fetch error: {e}")
+        return 0.1
+
+def smart_delay(base):
+    return base * random.uniform(0.8, 1.2)
+
+def check_achievements(stats, bot):
+    new_achievements = []
+    for milestone in bot["milestones"][:]:
+        if stats["revenue"] >= milestone:
+            new_achievements.append(f"💰 Milestone reached: ${milestone}")
+            bot["milestones"].remove(milestone)
+    if stats["clicks"] >= 100 and "Century Club" not in bot["achievements"]:
+        new_achievements.append("🎯 Century Club - 100 clicks")
+        bot["achievements"].append("Century Club")
+    if stats["imps"] >= 1000 and "Impression Master" not in bot["achievements"]:
+        new_achievements.append("👁️ Impression Master - 1000 impressions")
+        bot["achievements"].append("Impression Master")
+    return new_achievements
+
 ai_bots_cfg = {
     "Bot1": {
         "name": "HelperBot",
@@ -123,206 +412,20 @@ ai_bots_cfg = {
     },
 }
 
-LINKS_FILE = "links.json"
-LINKS_DEFAULT = [
-    {"id": 1, "network": "Zeydoo A", "url": "https://ldl1.com/link?z=9917741&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 2, "network": "Zeydoo B", "url": "https://sgben.com/link?z=9917747&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 3, "network": "Zeydoo C", "url": "https://92orb.com/link?z=9917751&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 4, "network": "Zeydoo D", "url": "https://92orb.com/link?z=9917754&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 5, "network": "Zeydoo E", "url": "https://ldl1.com/link?z=9917757&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 6, "network": "Zeydoo F", "url": "https://ovret.com/link?z=9917758&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 7, "network": "Zeydoo G", "url": "https://92orb.com/link?z=9917759&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 8, "network": "Zeydoo H", "url": "https://92orb.com/link?z=9917766&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 9, "network": "Zeydoo J", "url": "https://134l.com/link?z=9917767&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 10, "network": "Hshsh", "url": "https://ldl1.com/link?z=9917775&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 11, "network": "Jsjsj", "url": "https://sgben.com/link?z=9917779&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 12, "network": "Hsh", "url": "https://92orb.com/link?z=9917780&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 13, "network": "Ldld", "url": "https://ldl1.com/link?z=9917784&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-    {"id": 14, "network": "Ksjsb", "url": "https://92orb.com/link?z=9917785&var={SOURCE_ID}&ymid={CLICK_ID}", "weight": 1.0},
-]
-
-PROXIES = [
-    # Nowa lista proxy bez uwierzytelnienia
-    "http://78.9.234.55:8080",
-    "http://151.115.55.121:8080",
-    "http://217.142.4.601:8080",
-    "http://232.205.78.9:8080",
-    "http://234.55.78.9:8080",
-    "http://85.193.197.137:8081",
-    "http://37.26.192.4:8081",
-    "http://83.175.157.49:3128",
-    "http://78.9.232.205:8080",
-    "http://78.9.234.56:8080",
-    "http://151.115.55.122:8080",
-    "http://217.142.4.602:8080",
-    "http://232.205.78.10:8080",
-    "http://234.55.78.10:8080",
-    "http://85.193.197.138:8081",
-    "http://37.26.192.5:8081",
-    "http://83.175.157.50:3128",
-    "http://78.9.232.206:8080",
-    "http://78.9.234.57:8080",
-    "http://151.115.55.123:8080",
-    "http://217.142.4.603:8080",
-    "http://232.205.78.11:8080",
-    "http://234.55.78.11:8080",
-    "http://85.193.197.139:8081",
-    "http://37.26.192.6:8081",
-    "http://83.175.157.51:3128",
-    "http://78.9.232.207:8080",
-    "http://78.9.234.58:8080",
-    "http://151.115.55.124:8080",
-    "http://217.142.4.604:8080",
-    "http://232.205.78.12:8080",
-    "http://234.55.78.12:8080",
-    "http://85.193.197.140:8081",
-    "http://37.26.192.7:8081",
-    "http://83.175.157.52:3128",
-    "http://78.9.232.208:8080",
-    "http://78.9.234.59:8080",
-    "http://151.115.55.125:8080",
-    "http://217.142.4.605:8080",
-    "http://232.205.78.13:8080",
-    "http://234.55.78.13:8080",
-    "http://85.193.197.141:8081",
-
-    # Twoje stare proxy HTTP z autoryzacją
-    "http://fmjwfjea:2dg9ugb5gi@142.111.48.253:7030/",
-    "http://fmjwfjea:2dg9ugb5gi@198.23.239.134:6540/",
-    "http://fmjwfjea:2dg9ugb5gi@45.38.97.14:6014/",
-    "http://fmjwfjea:2dg9ugb5gi@107.172.27.3:6543/",
-    "http://fmjwfjea:2dg9ugb5gi@64.137.74.30:6641/",
-    "http://fmjwfjea:2dg9ugb5gi@154.203.43.7:5536/",
-    "http://fmjwfjea:2dg9ugb5gi@84.247.125.21:6095/",
-    "http://fmjwfjea:2dg9ugb5gi@216.159.7.3:6837/",
-    "http://fmjwfjea:2dg9ugb5gi@142.67.45.12:5611/",
-    "http://fmjwfjea:2dg9ugb5gi@142.128.95.8:6593/",
-]
-
-proxy_health_cache = {}
-proxy_fail_counts = {}
-
-def load_links():
-    try:
-        with open(LINKS_FILE, "r") as f:
-            links = json.load(f)
-            if not links:
-                raise Exception("Empty links file")
-            return links
-    except Exception as e:
-        logging.warning(f"load_links fallback to default due to: {e}")
-        return LINKS_DEFAULT.copy()
-
-def save_links(links):
-    with open(LINKS_FILE, "w") as f:
-        json.dump(links, f, indent=2)
-
-def generate_unique_id(num_bytes=8):
-    return secrets.token_hex(num_bytes)
-
-def proxy_health_check(proxy_url):
-    try:
-        headers = {"User-Agent": random.choice(user_agents_list)}
-        resp = requests.get("https://www.google.com", proxies={"http": proxy_url, "https": proxy_url}, headers=headers, timeout=5)
-        if resp.status_code in [200, 204, 302, 301]:
-            return True
-        else:
-            logging.warning(f"Proxy {proxy_url} zwróciło status {resp.status_code}")
-            return False
-    except Exception as e:
-        logging.warning(f"Błąd proxy {proxy_url}: {e}")
-        return False
-
-proxy_index = 0
+lock = threading.Lock()
 proxy_lock = threading.Lock()
-
-def get_next_proxy():
-    global proxy_index
-    with proxy_lock:
-        for p in PROXIES:
-            if p not in proxy_fail_counts:
-                proxy_fail_counts[p] = 0
-
-        alive_proxies = []
-        for proxy in PROXIES[:]:
-            if proxy in proxy_health_cache:
-                if proxy_health_cache[proxy]:
-                    alive_proxies.append(proxy)
-                else:
-                    proxy_fail_counts[proxy] += 1
-                    if proxy_fail_counts[proxy] >= 10:
-                        logging.warning(f"Usuwanie proxy {proxy} po {proxy_fail_counts[proxy]} nieudanych próbach")
-                        PROXIES.remove(proxy)
-                        proxy_fail_counts.pop(proxy, None)
-                        proxy_health_cache.pop(proxy, None)
-            else:
-                if proxy_health_check(proxy):
-                    proxy_health_cache[proxy] = True
-                    alive_proxies.append(proxy)
-                    proxy_fail_counts[proxy] = 0
-                else:
-                    proxy_health_cache[proxy] = False
-                    proxy_fail_counts[proxy] = proxy_fail_counts.get(proxy, 0) + 1
-
-        if not alive_proxies:
-            logging.error("Brak dostępnych proxy")
-            return None
-
-        chosen = alive_proxies[proxy_index % len(alive_proxies)]
-        proxy_index += 1
-
-        if chosen.startswith("socks5://"):
-            return {"http": chosen, "https": chosen}
-        else:
-            return {"http": chosen, "https": chosen}
-
-def fetch_cpc():
-    proxy = get_next_proxy()
-    headers = {"User-Agent": random.choice(user_agents_list)}
-    if proxy is None:
-        logging.warning("No proxy available for CPC fetch")
-        return 0.1
-    try:
-        resp = requests.get(
-            "https://twoja-api-cpc.com/fetch",
-            proxies=proxy,
-            headers=headers,
-            timeout=7
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            cpc_value = data.get("cpc")
-            if cpc_value:
-                return float(cpc_value)
-            else:
-                logging.warning("API CPC did not return 'cpc' value, defaulting to 0.1")
-                return 0.1
-        else:
-            logging.warning(f"CPC fetch failed with status {resp.status_code}")
-            return 0.1
-    except Exception as e:
-        logging.warning(f"Pobieranie CPC nie powiodło się: {e}")
-        return 0.1
-
-def smart_delay(base):
-    return base * random.uniform(0.8, 1.2)
-
-def check_achievements(stats, bot):
-    new_achievements = []
-    for milestone in bot["milestones"][:]:
-        if stats["revenue"] >= milestone:
-            new_achievements.append(f"💰 Milestone reached: ${milestone}")
-            bot["milestones"].remove(milestone)
-    if stats["clicks"] >= 100 and "Century Club" not in bot["achievements"]:
-        new_achievements.append("🎯 Century Club - 100 clicks")
-        bot["achievements"].append("Century Club")
-    if stats["imps"] >= 1000 and "Impression Master" not in bot["achievements"]:
-        new_achievements.append("👁️ Impression Master - 1000 impressions")
-        bot["achievements"].append("Impression Master")
-    return new_achievements
+stats = {
+    "imps": 0,
+    "clicks": 0,
+    "revenue": 0.0,
+    "pending": 0,
+    "last_update": datetime.now().isoformat()
+}
 
 supermode_active = False
 supermode_lock = threading.Lock()
+mega_scan_active = False
+mega_scan_lock = threading.Lock()
 
 def start_supermode(duration_seconds):
     global supermode_active, supermode_end_time
@@ -352,10 +455,6 @@ def stop_supermode():
                 bot["watching_active"] = False
     logging.info("Supermode deactivated")
 
-mega_scan_active = False
-mega_scan_end_time = 0
-mega_scan_lock = threading.Lock()
-
 def start_mega_scan(duration_seconds):
     global mega_scan_active, mega_scan_end_time
     with mega_scan_lock:
@@ -369,13 +468,12 @@ def monitor_and_adapt(bot, error_rate_threshold=0.2):
     if error_rate > error_rate_threshold:
         bot["expensive_mode"] = not bot["expensive_mode"]
         bot["turbo_mode"] = not bot["turbo_mode"]
-        logging.info(f"Bot {bot['name']} zmienił tryb z powodu wysokiego error rate: {error_rate}")
+        logging.info(f"Bot {bot['name']} changed mode due to high error rate: {error_rate}")
     bot["error_window"] = []
 
 def ai_bot_worker(bot_name):
     bot = ai_bots_cfg[bot_name]
     logging.info(f"Bot '{bot['name']}' started")
-    global supermode_active, supermode_end_time, mega_scan_active, mega_scan_end_time
 
     session = requests.Session()
     session.headers.update({"User-Agent": random.choice(user_agents_list)})
@@ -391,6 +489,7 @@ def ai_bot_worker(bot_name):
         with mega_scan_lock:
             if mega_scan_active and time.time() > mega_scan_end_time:
                 logging.info("Mega scan expired, deactivating")
+                global mega_scan_active
                 mega_scan_active = False
             mega_active = mega_scan_active
 
@@ -464,6 +563,32 @@ def ai_bot_worker(bot_name):
             counter = 0
 
         time.sleep(smart_delay(bot["interval"]))
+
+app = Flask(__name__)
+CORS(app)
+sock = Sock(app)
+load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+user_agents_list = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "Mozilla/5.0 (Linux; Android 10; SM-G975F)",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_2 like Mac OS X)"
+]
+
+AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "secret-token")
+PORT = int(os.getenv("PORT", "5000"))
+
+def require_auth(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        token = request.headers.get("Authorization")
+        if token != f"Bearer {AUTH_TOKEN}":
+            abort(401, description="Unauthorized")
+        return f(*args, **kwargs)
+    return wrapper
 
 @app.route("/links")
 def api_links():
@@ -553,13 +678,9 @@ def api_command():
 
 @app.route("/huggingface_chat", methods=["POST"])
 def api_huggingface_chat():
-    # Sprawdzenie poprawności danych wejściowych
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
-
     data = request.get_json()
-
-    # Pełna walidacja danych wejściowych
     if not data or "message" not in data or not isinstance(data["message"], str):
         return jsonify({"error": "Missing or invalid message"}), 400
 
@@ -567,13 +688,11 @@ def api_huggingface_chat():
     if not message:
         return jsonify({"error": "Message cannot be empty"}), 400
 
-    # Pobranie klucza API z zmiennych środowiskowych
     token = os.getenv("HUGGINGFACE_API_KEY")
     if not token:
         return jsonify({"error": "HuggingFace API key not configured"}), 500
 
     try:
-        # Przykładowe wywołanie API (dostosuj do swoich potrzeb)
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -591,37 +710,11 @@ def api_huggingface_chat():
         )
         response.raise_for_status()
 
-        return jsonify({
-            "response": response.json(),
-            "status": "success"
-        })
-
+        model_response = response.json()
     except requests.exceptions.RequestException as e:
-        return jsonify({
-            "error": f"HuggingFace API error: {str(e)}",
-            "status": "error"
-        }), 500
+        return jsonify({"error": f"HuggingFace API error: {str(e)}", "status": "error"}), 500
     except Exception as e:
-        return jsonify({
-            "error": f"Internal server error: {str(e)}",
-            "status": "error"
-        }), 500
-
-    if not token:
-        return jsonify({"error": "Missing Huggingface API key"}), 500
-
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = requests.post(
-        "https://api-inference.huggingface.co/models/gpt2",
-        headers=headers,
-        json={"inputs": message, "options": {"wait_for_model": True}}
-    )
-    if resp.status_code != 200:
-        return jsonify({"error": "Huggingface API error", "details": resp.text}), 500
-    data_res = resp.json()
-    text_response = ""
-    if isinstance(data_res, list) and data_res:
-        text_response = data_res[0].get("generated_text", "").strip()
+        return jsonify({"error": f"Internal server error: {str(e)}", "status": "error"}), 500
 
     command_response = ""
     lmsg = message.lower()
@@ -647,7 +740,7 @@ def api_huggingface_chat():
         else:
             command_response = "Command not recognized."
 
-    return jsonify({"model_response": text_response, "command_response": command_response})
+    return jsonify({"model_response": model_response, "command_response": command_response})
 
 @app.route("/")
 def index():
@@ -661,91 +754,11 @@ def api_scan():
     start_mega_scan(3000)
     return jsonify({"message": "Mega scan started for 3000 seconds"})
 
-def get_driver():
-    """Zwraca skonfigurowany driver Chrome w trybie headless dla Render.com"""
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
-
-def selenium_click(url):
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-    options.add_argument("--no-sandbox")
-
-    driver = webdriver.Chrome(options=options)
-    try:
-        driver.get(url)
-        wait = WebDriverWait(driver, 10)
-        try:
-            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-        except TimeoutException:
-            pass
-        time.sleep(random.uniform(3, 6))
-
-        action = ActionChains(driver)
-        for _ in range(random.randint(3,7)):
-            action.move_by_offset(random.randint(10,300), random.randint(10,300)).perform()
-            time.sleep(random.uniform(0.3,1.2))
-
-        driver.execute_script("window.scrollBy(0, window.innerHeight / 2)")
-        time.sleep(random.uniform(2,4))
-        driver.execute_script("window.scrollBy(0, -window.innerHeight / 2)")
-        time.sleep(random.uniform(1,2))
-
-        try:
-            clickable_elements = driver.find_elements(By.TAG_NAME, "a")
-            if clickable_elements:
-                chosen = random.choice(clickable_elements)
-                action.move_to_element(chosen).click().perform()
-                time.sleep(random.uniform(2,5))
-        except Exception:
-            pass
-        return True
-    except Exception as e:
-        print(f"Selenium error: {e}")
-        return False
-    finally:
-        driver.quit()
-
-def proxy_auto_refresh():
-    global PROXIES, proxy_fail_counts, proxy_health_cache
-    to_remove = [p for p, count in proxy_fail_counts.items() if count >= 3]
-    for p in to_remove:
-        if p in PROXIES:
-            PROXIES.remove(p)
-        proxy_fail_counts.pop(p, None)
-        proxy_health_cache.pop(p, None)
-
-    if len(PROXIES) < 5:
-        new_proxies = ["http://newproxy1:8080", "http://newproxy2:8080"]
-        PROXIES.extend(new_proxies)
-        for p in new_proxies:
-            proxy_fail_counts[p] = 0
-            proxy_health_cache[p] = True
-
-AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "secret-token")
-
-def require_auth(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        token = request.headers.get("Authorization")
-        if token != f"Bearer {AUTH_TOKEN}":
-            abort(401, description="Unauthorized")
-        return f(*args, **kwargs)
-    return wrapper
-
-def get_analytics_report():
+@app.route("/analytics")
+@require_auth
+def api_analytics():
     with lock:
-        return {
+        return jsonify({
             "total_clicks": stats["clicks"],
             "total_impressions": stats["imps"],
             "total_revenue": round(stats["revenue"], 4),
@@ -756,12 +769,7 @@ def get_analytics_report():
                 "turbo_mode": bot["turbo_mode"],
                 "stealth_mode": bot["stealth_mode"]
             } for bot in ai_bots_cfg.values()}
-        }
-
-@app.route("/analytics")
-@require_auth
-def api_analytics():
-    return jsonify(get_analytics_report())
+        })
 
 @sock.route('/ws_status')
 def ws_status(ws):
